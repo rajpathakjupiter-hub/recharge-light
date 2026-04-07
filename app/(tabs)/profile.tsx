@@ -117,7 +117,7 @@ export default function ProfileScreen() {
     );
   };
 
-  const MenuItem = ({ icon, title, subtitle, onPress, iconColor = '#F97316', iconBg = 'rgba(249,115,22,0.12)', danger = false }: any) => (
+  const MenuItem = ({ icon, title, subtitle, onPress, iconColor = '#10b981', iconBg = 'rgba(249,115,22,0.12)', danger = false }: any) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.menuIcon, { backgroundColor: danger ? 'rgba(239,68,68,0.12)' : iconBg }]}>
         <Ionicons name={icon} size={20} color={danger ? '#ef4444' : iconColor} />
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#10b981']} />}
       >
         {/* Header with Logo */}
         <View style={styles.header}>
@@ -148,8 +148,8 @@ export default function ProfileScreen() {
         <View style={styles.balanceCard}>
           <TouchableOpacity style={styles.balanceContent} onPress={fetchBalance} activeOpacity={0.7}>
             <View style={styles.balanceIconRow}>
-              <Ionicons name="wallet" size={26} color="#F97316" />
-              {balanceLoading && <ActivityIndicator size="small" color="#F97316" style={{marginLeft: 8}} />}
+              <Ionicons name="wallet" size={26} color="#10b981" />
+              {balanceLoading && <ActivityIndicator size="small" color="#10b981" style={{marginLeft: 8}} />}
             </View>
             <Text style={styles.balanceValue}>₹{userData?.wallet_balance?.toFixed(2) || '0.00'}</Text>
             <Text style={styles.balanceLabel}>Wallet Balance (Tap to refresh)</Text>
@@ -231,7 +231,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
   scrollContent: { padding: 16, paddingBottom: Platform.OS === 'ios' ? 110 : 100 },
   header: { alignItems: 'center', marginBottom: 20, paddingTop: 10 },
   avatar: {
@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     marginBottom: 14,
     borderWidth: 4,
-    borderColor: '#F97316',
+    borderColor: '#10b981',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
       android: { elevation: 8 },
     }),
   },
@@ -254,15 +254,15 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 24,
     borderWidth: 2,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16 },
       android: { elevation: 4 },
     }),
   },
   balanceContent: { alignItems: 'center', gap: 8 },
   balanceIconRow: { flexDirection: 'row', alignItems: 'center' },
-  balanceValue: { fontSize: 36, fontWeight: '900', color: '#F97316', marginTop: 8 },
+  balanceValue: { fontSize: 36, fontWeight: '900', color: '#10b981', marginTop: 8 },
   balanceLabel: { fontSize: 13, color: '#94a3b8', marginTop: 4, fontWeight: '500' },
   menuSection: { marginBottom: 16 },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 10, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -282,6 +282,6 @@ const styles = StyleSheet.create({
   menuSubtitle: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
   footer: { alignItems: 'center', marginTop: 24, paddingVertical: 20 },
   footerLogo: { width: 70, height: 70, borderRadius: 18, marginBottom: 10 },
-  appName: { fontSize: 20, fontWeight: '900', color: '#F97316', marginBottom: 4 },
+  appName: { fontSize: 20, fontWeight: '900', color: '#10b981', marginBottom: 4 },
   versionText: { fontSize: 12, color: '#94a3b8' },
 });

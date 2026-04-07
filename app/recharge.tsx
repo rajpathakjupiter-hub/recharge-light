@@ -49,7 +49,7 @@ const getOpColor = (c: string): string[] => {
     d2h: ['#ed1c24', '#c41920'],
     sundirect: ['#e65100', '#bf4400'],
   };
-  return colors[c.toLowerCase()] || ['#F97316', '#EA580C'];
+  return colors[c.toLowerCase()] || ['#10b981', '#059669'];
 };
 
 // Retry wrapper with exponential backoff
@@ -347,10 +347,10 @@ export default function RechargeScreen() {
         </View>
         <ScrollView contentContainerStyle={styles.scroll}>
           <Text style={styles.sectionTitle}>Select Operator</Text>
-          {loading ? <ActivityIndicator size="large" color="#F97316" style={{ marginTop: 40 }} /> : (
+          {loading ? <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} /> : (
             currentOps.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Ionicons name={isDTH ? 'tv-outline' : 'phone-portrait-outline'} size={56} color="#FDBA74" />
+                <Ionicons name={isDTH ? 'tv-outline' : 'phone-portrait-outline'} size={56} color="#bbf7d0" />
                 <Text style={styles.emptyText}>No operators available</Text>
                 <Text style={styles.emptySubtext}>Please check your internet connection</Text>
                 <TouchableOpacity style={styles.retryBtn} onPress={fetchOperators}>
@@ -409,7 +409,7 @@ export default function RechargeScreen() {
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <Text style={styles.sectionTitle}>{isDTH ? 'Subscriber ID' : 'Mobile Number'}</Text>
             <View style={styles.inputBox}>
-              <Ionicons name={isDTH ? 'tv' : 'call'} size={18} color="#F97316" />
+              <Ionicons name={isDTH ? 'tv' : 'call'} size={18} color="#10b981" />
               <TextInput
                 style={[styles.input, { fontSize: isSmallDevice ? 14 : 16 }]}
                 placeholder={isDTH ? 'Enter Subscriber ID' : 'Enter 10-digit mobile'}
@@ -423,7 +423,7 @@ export default function RechargeScreen() {
 
             {!isDTH && (
               <TouchableOpacity style={styles.circleBtn} onPress={() => setShowCircleModal(true)}>
-                <Ionicons name="location" size={16} color="#F97316" />
+                <Ionicons name="location" size={16} color="#10b981" />
                 <Text style={[styles.circleBtnText, { fontSize: isSmallDevice ? 12 : 14 }]} numberOfLines={1}>{circles.find(c => c.code === selectedCircle)?.name || 'Select Circle'}</Text>
                 <Ionicons name="chevron-down" size={16} color="#94a3b8" />
               </TouchableOpacity>
@@ -449,7 +449,7 @@ export default function RechargeScreen() {
               disabled={!mobileNumber || !amount || loading}
               activeOpacity={0.8}
             >
-              <LinearGradient colors={['#F97316', '#EA580C']} style={styles.rechargeBtnGrad}>
+              <LinearGradient colors={['#10b981', '#059669']} style={styles.rechargeBtnGrad}>
                 {loading ? <ActivityIndicator color="#fff" /> : (
                   <>
                     <Ionicons name="flash" size={18} color="#fff" />
@@ -473,7 +473,7 @@ export default function RechargeScreen() {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
-                {loadingPlans ? <ActivityIndicator color="#F97316" style={{ marginTop: 20 }} /> : (
+                {loadingPlans ? <ActivityIndicator color="#10b981" style={{ marginTop: 20 }} /> : (
                   <View style={styles.plansGrid}>
                     {categories.find(c => c.name === activeCategory)?.plans.slice(0, 10).map((plan, i) => (
                       <TouchableOpacity key={i} style={[styles.planCard, { width: planCardWidth }]} onPress={() => { setAmount(plan.rs.toString()); setSelectedPlan(plan); }}>
@@ -503,7 +503,7 @@ export default function RechargeScreen() {
                 renderItem={({ item }) => (
                   <TouchableOpacity style={styles.circleItem} onPress={() => { setSelectedCircle(item.code); setShowCircleModal(false); }}>
                     <Text style={styles.circleItemText}>{item.name}</Text>
-                    {selectedCircle === item.code && <Ionicons name="checkmark" size={20} color="#F97316" />}
+                    {selectedCircle === item.code && <Ionicons name="checkmark" size={20} color="#10b981" />}
                   </TouchableOpacity>
                 )}
               />
@@ -525,7 +525,7 @@ export default function RechargeScreen() {
               )}
               <View style={styles.confirmRow}><Text style={styles.confirmLabel}>{isDTH ? 'Subscriber ID' : 'Mobile'}</Text><Text style={styles.confirmValue}>{mobileNumber}</Text></View>
               <View style={styles.confirmRow}><Text style={styles.confirmLabel}>Operator</Text><Text style={styles.confirmValue}>{selectedOperatorName}</Text></View>
-              <View style={styles.confirmRow}><Text style={styles.confirmLabel}>Amount</Text><Text style={[styles.confirmValue, { color: '#F97316' }]}>₹{amount}</Text></View>
+              <View style={styles.confirmRow}><Text style={styles.confirmLabel}>Amount</Text><Text style={[styles.confirmValue, { color: '#10b981' }]}>₹{amount}</Text></View>
               <View style={styles.confirmBtns}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowConfirmModal(false)} disabled={loading}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
@@ -545,8 +545,8 @@ export default function RechargeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#FDBA74' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#bbf7d0' },
   headerCenter: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' },
   headerOpLogo: { width: 24, height: 24 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 2 },
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 40 },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#64748b', marginBottom: 10 },
   opGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  opCard: { backgroundColor: '#fff', borderRadius: 14, padding: 12, alignItems: 'center', elevation: 2, borderWidth: 1, borderColor: '#FDBA74' },
+  opCard: { backgroundColor: '#fff', borderRadius: 14, padding: 12, alignItems: 'center', elevation: 2, borderWidth: 1, borderColor: '#bbf7d0' },
   opLogoContainer: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   opLogo: { width: 44, height: 44 },
   opIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -563,25 +563,25 @@ const styles = StyleSheet.create({
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 50 },
   emptyText: { fontSize: 16, fontWeight: '700', color: '#64748b', marginTop: 14 },
   emptySubtext: { fontSize: 13, color: '#94a3b8', marginTop: 4 },
-  retryBtn: { marginTop: 16, backgroundColor: '#F97316', paddingHorizontal: 28, paddingVertical: 10, borderRadius: 10 },
+  retryBtn: { marginTop: 16, backgroundColor: '#10b981', paddingHorizontal: 28, paddingVertical: 10, borderRadius: 10 },
   retryBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 2, borderColor: '#FDBA74', paddingHorizontal: 12, marginBottom: 14, gap: 8 },
+  inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 2, borderColor: '#bbf7d0', paddingHorizontal: 12, marginBottom: 14, gap: 8 },
   input: { flex: 1, fontWeight: '600', color: '#1e293b', paddingVertical: 12 },
-  rupee: { fontWeight: '800', color: '#F97316' },
-  circleBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14, gap: 6, borderWidth: 1, borderColor: '#FDBA74' },
+  rupee: { fontWeight: '800', color: '#10b981' },
+  circleBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 14, gap: 6, borderWidth: 1, borderColor: '#bbf7d0' },
   circleBtnText: { flex: 1, fontWeight: '600', color: '#1e293b' },
   rechargeBtn: { borderRadius: 12, overflow: 'hidden', marginTop: 6 },
   rechargeBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
   rechargeBtnDisabled: { opacity: 0.5 },
   rechargeBtnText: { fontWeight: '800', color: '#fff' },
   catScroll: { marginBottom: 14 },
-  catBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#fff', borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#FDBA74' },
-  catBtnActive: { backgroundColor: '#F97316', borderColor: '#F97316' },
+  catBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: '#fff', borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#bbf7d0' },
+  catBtnActive: { backgroundColor: '#10b981', borderColor: '#10b981' },
   catBtnText: { fontWeight: '600', color: '#64748b' },
   catBtnTextActive: { color: '#fff' },
   plansGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  planCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#FDBA74' },
-  planPrice: { fontWeight: '900', color: '#F97316' },
+  planCard: { backgroundColor: '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#bbf7d0' },
+  planPrice: { fontWeight: '900', color: '#10b981' },
   planValidity: { fontWeight: '600', color: '#22c55e', marginTop: 3 },
   planDesc: { color: '#64748b', marginTop: 4, lineHeight: 14 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
@@ -599,6 +599,6 @@ const styles = StyleSheet.create({
   confirmBtns: { flexDirection: 'row', gap: 10, marginTop: 20, width: '100%' },
   cancelBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#f1f5f9', borderRadius: 10, alignItems: 'center' },
   cancelBtnText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
-  confirmBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#F97316', borderRadius: 10, alignItems: 'center' },
+  confirmBtn: { flex: 1, paddingVertical: 12, backgroundColor: '#10b981', borderRadius: 10, alignItems: 'center' },
   confirmBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

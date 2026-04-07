@@ -120,7 +120,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <LinearGradient colors={['#FFF7ED', '#FFEDD5', '#FED7AA']} style={styles.gradientBg}>
+    <LinearGradient colors={['#f0fdf4', '#FFEDD5', '#FED7AA']} style={styles.gradientBg}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           
@@ -134,7 +134,7 @@ export default function LoginScreen() {
 
             <Animated.View style={[styles.trustBadges, { transform: [{ translateY: badgeFloat }] }]}>
               <View style={styles.badge}>
-                <Ionicons name="flash" size={14} color="#F97316" />
+                <Ionicons name="flash" size={14} color="#10b981" />
                 <Text style={styles.badgeText}>Lightning Fast</Text>
               </View>
               <View style={styles.badge}>
@@ -175,7 +175,7 @@ export default function LoginScreen() {
 
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity onPress={sendOTP} disabled={loading} activeOpacity={0.9}>
-                    <LinearGradient colors={['#F97316', '#EA580C']} style={styles.modernButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <LinearGradient colors={['#10b981', '#059669']} style={styles.modernButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                       {loading ? <ActivityIndicator color="#fff" /> : (
                         <>
                           <Text style={styles.buttonText}>Get OTP</Text>
@@ -216,7 +216,7 @@ export default function LoginScreen() {
 
                 <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
                   <TouchableOpacity onPress={verifyOTP} disabled={loading} activeOpacity={0.9}>
-                    <LinearGradient colors={['#F97316', '#EA580C']} style={styles.modernButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                    <LinearGradient colors={['#10b981', '#059669']} style={styles.modernButton} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                       {loading ? <ActivityIndicator color="#fff" /> : (
                         <>
                           <Text style={styles.buttonText}>Verify & Continue</Text>
@@ -228,7 +228,7 @@ export default function LoginScreen() {
                 </Animated.View>
 
                 <TouchableOpacity style={styles.resendButton} onPress={sendOTP}>
-                  <Ionicons name="refresh" size={18} color="#F97316" />
+                  <Ionicons name="refresh" size={18} color="#10b981" />
                   <Text style={styles.resendText}>Resend OTP</Text>
                 </TouchableOpacity>
               </>
@@ -264,9 +264,9 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     overflow: 'hidden',
     marginBottom: 16,
-    backgroundColor: '#F97316',
+    backgroundColor: '#10b981',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 20 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.4, shadowRadius: 20 },
       android: { elevation: 12 },
     }),
   },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     padding: 28,
     marginBottom: 24,
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.15, shadowRadius: 32 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.15, shadowRadius: 32 },
       android: { elevation: 10 },
     }),
   },
@@ -305,19 +305,19 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 10, marginLeft: 4 },
   modernInputContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#f0fdf4',
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     overflow: 'hidden',
   },
   countryCodeBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, backgroundColor: '#FFEDD5' },
   flagIcon: { fontSize: 20 },
   countryCodeText: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
-  inputDivider: { width: 1, backgroundColor: '#FDBA74' },
+  inputDivider: { width: 1, backgroundColor: '#bbf7d0' },
   modernInput: { flex: 1, fontSize: 16, color: '#1e293b', paddingHorizontal: 16, paddingVertical: 16, fontWeight: '600' },
-  otpInputContainer: { backgroundColor: '#FFF7ED', borderRadius: 16, borderWidth: 2, borderColor: '#FDBA74' },
-  otpInput: { fontSize: 32, fontWeight: '800', color: '#F97316', paddingVertical: 20, letterSpacing: 12 },
+  otpInputContainer: { backgroundColor: '#f0fdf4', borderRadius: 16, borderWidth: 2, borderColor: '#bbf7d0' },
+  otpInput: { fontSize: 32, fontWeight: '800', color: '#10b981', paddingVertical: 20, letterSpacing: 12 },
   modernButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 16,
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 16 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 16 },
       android: { elevation: 8 },
     }),
   },
@@ -334,9 +334,9 @@ const styles = StyleSheet.create({
   backButton: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginBottom: 20 },
   backText: { fontSize: 14, color: '#64748b', fontWeight: '600' },
   resendButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, paddingVertical: 12 },
-  resendText: { fontSize: 14, fontWeight: '700', color: '#F97316' },
+  resendText: { fontSize: 14, fontWeight: '700', color: '#10b981' },
   footerLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8 },
-  linkText: { fontSize: 13, color: '#F97316', fontWeight: '600' },
+  linkText: { fontSize: 13, color: '#10b981', fontWeight: '600' },
   linkDivider: { fontSize: 13, color: '#cbd5e1' },
   copyrightText: { fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 16 },
 });

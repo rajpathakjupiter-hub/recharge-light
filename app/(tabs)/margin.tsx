@@ -63,7 +63,7 @@ export default function MarginScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#F97316" />
+          <ActivityIndicator size="large" color="#10b981" />
           <Text style={styles.loadingText}>Loading margins...</Text>
         </View>
       </SafeAreaView>
@@ -74,21 +74,21 @@ export default function MarginScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Margin Rates</Text>
-        <Ionicons name="trending-up" size={24} color="#F97316" />
+        <Ionicons name="trending-up" size={24} color="#10b981" />
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#10b981']} />}
       >
         <Animated.View style={{ opacity: fadeAnim }}>
-          <MarginCard title="Mobile Prepaid" icon="phone-portrait" color="#F97316" data={prepaidMargins} />
-          <MarginCard title="DTH" icon="tv" color="#EA580C" data={dthMargins} />
+          <MarginCard title="Mobile Prepaid" icon="phone-portrait" color="#10b981" data={prepaidMargins} />
+          <MarginCard title="DTH" icon="tv" color="#059669" data={dthMargins} />
         </Animated.View>
 
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle" size={20} color="#F97316" />
+          <Ionicons name="information-circle" size={20} color="#10b981" />
           <Text style={styles.infoText}>Margins are your profit on each recharge. Higher margin = more earnings!</Text>
         </View>
       </ScrollView>
@@ -97,13 +97,13 @@ export default function MarginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#FDBA74' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#bbf7d0' },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
   scrollContent: { padding: 16, paddingBottom: 100 },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 14, color: '#94a3b8' },
-  card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, elevation: 3, shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+  card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, elevation: 3, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
   cardIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
   marginRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },

@@ -154,7 +154,7 @@ export default function HistoryScreen() {
             <Image source={{ uri: logo }} style={styles.opLogo} resizeMode="contain" />
           ) : (
             <LinearGradient 
-              colors={isDTH ? ['#6366f1', '#8b5cf6'] : ['#F97316', '#EA580C']} 
+              colors={isDTH ? ['#6366f1', '#8b5cf6'] : ['#10b981', '#059669']} 
               style={styles.iconGradient}
             >
               <Ionicons
@@ -237,7 +237,7 @@ export default function HistoryScreen() {
       <View style={styles.header}>
         <Text style={[styles.title, { fontSize: isSmallDevice ? 20 : 24 }]}>Transaction History</Text>
         <View style={styles.headerIcon}>
-          <Ionicons name="receipt" size={isSmallDevice ? 16 : 20} color="#F97316" />
+          <Ionicons name="receipt" size={isSmallDevice ? 16 : 20} color="#10b981" />
         </View>
       </View>
 
@@ -248,11 +248,11 @@ export default function HistoryScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F97316" />
+          <ActivityIndicator size="large" color="#10b981" />
         </View>
       ) : filteredTransactions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <LinearGradient colors={['#F97316', '#EA580C']} style={styles.emptyIconBg}>
+          <LinearGradient colors={['#10b981', '#059669']} style={styles.emptyIconBg}>
             <Ionicons name="receipt-outline" size={40} color="#fff" />
           </LinearGradient>
           <Text style={styles.emptyText}>No {filter === 'mobile' ? 'Mobile' : 'DTH'} transactions yet</Text>
@@ -268,8 +268,8 @@ export default function HistoryScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#F97316"
-              colors={['#F97316']}
+              tintColor="#10b981"
+              colors={['#10b981']}
             />
           }
         />
@@ -281,7 +281,7 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#f0fdf4',
   },
   header: {
     flexDirection: 'row',
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
       android: { elevation: 4 },
     }),
   },
@@ -323,11 +323,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#fff',
     borderWidth: 2,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
   },
   filterButtonActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#F97316',
+    backgroundColor: '#10b981',
+    borderColor: '#10b981',
   },
   filterButtonText: {
     fontSize: 13,
@@ -378,9 +378,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
       android: { elevation: 3 },
     }),
   },

@@ -182,7 +182,7 @@ export default function StatusScreen() {
 
   const renderConfetti = () => {
     if (status !== 'success') return null;
-    const colors = ['#F97316', '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444'];
+    const colors = ['#10b981', '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444'];
     return confettiAnim.map((anim, i) => (
       <Animated.View
         key={i}
@@ -238,9 +238,9 @@ export default function StatusScreen() {
       {/* Background gradient based on status */}
       <LinearGradient
         colors={
-          status === 'success' ? ['#f0fdf4', '#dcfce7', '#FFF7ED'] :
-          status === 'failed' ? ['#fef2f2', '#fee2e2', '#FFF7ED'] :
-          ['#fffbeb', '#fef3c7', '#FFF7ED']
+          status === 'success' ? ['#f0fdf4', '#dcfce7', '#f0fdf4'] :
+          status === 'failed' ? ['#fef2f2', '#fee2e2', '#f0fdf4'] :
+          ['#fffbeb', '#fef3c7', '#f0fdf4']
         }
         style={StyleSheet.absoluteFill}
       />
@@ -287,13 +287,13 @@ export default function StatusScreen() {
           { transform: [{ translateY: status !== 'pending' ? slideAnim : 0 }] }
         ]}>
           <View style={styles.cardHeader}>
-            <Ionicons name="receipt" size={18} color="#F97316" />
+            <Ionicons name="receipt" size={18} color="#10b981" />
             <Text style={styles.cardHeaderText}>Transaction Details</Text>
           </View>
           
           <View style={styles.row}>
             <Text style={styles.label}>Amount</Text>
-            <Text style={[styles.value, { color: '#F97316', fontSize: isSmallDevice ? 18 : 22 }]}>₹{params.amount}</Text>
+            <Text style={[styles.value, { color: '#10b981', fontSize: isSmallDevice ? 18 : 22 }]}>₹{params.amount}</Text>
           </View>
           
           <View style={styles.row}>
@@ -347,10 +347,10 @@ export default function StatusScreen() {
         {status === 'pending' && (
           <TouchableOpacity style={styles.checkBtn} onPress={checkStatus} disabled={checking}>
             {checking ? (
-              <ActivityIndicator color="#F97316" size="small" />
+              <ActivityIndicator color="#10b981" size="small" />
             ) : (
               <>
-                <Ionicons name="refresh" size={18} color="#F97316" />
+                <Ionicons name="refresh" size={18} color="#10b981" />
                 <Text style={styles.checkText}>Refresh Status</Text>
               </>
             )}
@@ -361,7 +361,7 @@ export default function StatusScreen() {
         <View style={styles.buttons}>
           {status === 'failed' && (
             <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()} activeOpacity={0.8}>
-              <Ionicons name="refresh" size={18} color="#F97316" />
+              <Ionicons name="refresh" size={18} color="#10b981" />
               <Text style={styles.retryText}>Try Again</Text>
             </TouchableOpacity>
           )}
@@ -371,7 +371,7 @@ export default function StatusScreen() {
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.8}
           >
-            <LinearGradient colors={['#F97316', '#EA580C']} style={styles.homeBtnGradient}>
+            <LinearGradient colors={['#10b981', '#059669']} style={styles.homeBtnGradient}>
               <Ionicons name="home" size={18} color="#fff" />
               <Text style={styles.homeText}>Go to Home</Text>
             </LinearGradient>
@@ -381,7 +381,7 @@ export default function StatusScreen() {
         {/* New Recharge Button (Success) */}
         {status === 'success' && (
           <TouchableOpacity style={styles.newRechargeBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            <Ionicons name="flash" size={16} color="#F97316" />
+            <Ionicons name="flash" size={16} color="#10b981" />
             <Text style={styles.newRechargeText}>New Recharge</Text>
           </TouchableOpacity>
         )}
@@ -443,9 +443,9 @@ const styles = StyleSheet.create({
     width: '100%', 
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 16 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 16 },
       android: { elevation: 6 },
     }),
   },
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
   },
-  checkText: { fontSize: 14, fontWeight: '700', color: '#F97316' },
+  checkText: { fontSize: 14, fontWeight: '700', color: '#10b981' },
   buttons: { flexDirection: 'row', gap: 12, width: '100%' },
   retryBtn: { 
     flex: 1, 
@@ -516,9 +516,9 @@ const styles = StyleSheet.create({
     borderRadius: 16, 
     paddingVertical: 16, 
     borderWidth: 2, 
-    borderColor: '#F97316' 
+    borderColor: '#10b981' 
   },
-  retryText: { fontSize: 14, fontWeight: '700', color: '#F97316' },
+  retryText: { fontSize: 14, fontWeight: '700', color: '#10b981' },
   homeBtn: { 
     flex: 1, 
     borderRadius: 16, 
@@ -541,6 +541,6 @@ const styles = StyleSheet.create({
   newRechargeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#F97316',
+    color: '#10b981',
   },
 });

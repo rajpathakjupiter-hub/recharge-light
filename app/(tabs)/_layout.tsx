@@ -8,7 +8,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#F97316',
+        tabBarActiveTintColor: '#10b981',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     height: Platform.OS === 'ios' ? 88 : 72,
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24 },
       android: { elevation: 12 },
     }),
   },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
       android: { elevation: 3 },
     }),
   },

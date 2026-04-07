@@ -117,7 +117,7 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'ios' ? 100 : 90 }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F97316" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />}
       >
         {/* Header with Logo */}
         <Animated.View style={[styles.header, {
@@ -136,7 +136,7 @@ export default function HomeScreen() {
 
         {/* Balance Card - Orange Theme */}
         <Animated.View style={{ opacity: balanceAnim, transform: [{ scale: cardScale }] }}>
-          <LinearGradient colors={['#F97316', '#EA580C', '#C2410C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
+          <LinearGradient colors={['#10b981', '#059669', '#047857']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
             <View style={styles.decorCircle1} />
             <View style={styles.decorCircle2} />
             <View style={styles.balanceTop}>
@@ -149,7 +149,7 @@ export default function HomeScreen() {
             <View style={styles.balanceActions}>
               <Animated.View style={{ transform: [{ scale: pulseAnim }], flex: 1 }}>
                 <TouchableOpacity style={[styles.addMoneyButton, dynamicStyles.addMoneyBtn]} onPress={() => router.push('/add-money')} activeOpacity={0.8}>
-                  <Ionicons name="add-circle" size={isSmallDevice ? 16 : 20} color="#F97316" />
+                  <Ionicons name="add-circle" size={isSmallDevice ? 16 : 20} color="#10b981" />
                   <Text style={[styles.addMoneyText, { fontSize: isSmallDevice ? 12 : 15 }]}>Add Money</Text>
                 </TouchableOpacity>
               </Animated.View>
@@ -165,7 +165,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { fontSize: isSmallDevice ? 16 : 20 }]}>Recharge Services</Text>
-            <Ionicons name="flash" size={isSmallDevice ? 14 : 18} color="#F97316" />
+            <Ionicons name="flash" size={isSmallDevice ? 14 : 18} color="#10b981" />
           </View>
           <View style={styles.quickActions}>
             <Animated.View style={[styles.actionCardWrapper, {
@@ -173,7 +173,7 @@ export default function HomeScreen() {
               transform: [{ translateX: quickAction1.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }],
             }]}>
               <TouchableOpacity style={[styles.actionCard, dynamicStyles.actionCard]} onPress={() => handleRecharge('prepaid')} activeOpacity={0.7}>
-                <LinearGradient colors={['#F97316', '#EA580C']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
+                <LinearGradient colors={['#10b981', '#059669']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
                   <Ionicons name="phone-portrait" size={dynamicStyles.actionIconSize} color="#fff" />
                 </LinearGradient>
                 <Text style={[styles.actionText, { fontSize: dynamicStyles.actionText.fontSize }]}>Mobile</Text>
@@ -185,7 +185,7 @@ export default function HomeScreen() {
               transform: [{ translateX: quickAction2.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
             }]}>
               <TouchableOpacity style={[styles.actionCard, dynamicStyles.actionCard]} onPress={() => handleRecharge('dth')} activeOpacity={0.7}>
-                <LinearGradient colors={['#F97316', '#EA580C']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
+                <LinearGradient colors={['#10b981', '#059669']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
                   <Ionicons name="tv" size={dynamicStyles.actionIconSize} color="#fff" />
                 </LinearGradient>
                 <Text style={[styles.actionText, { fontSize: dynamicStyles.actionText.fontSize }]}>DTH</Text>
@@ -207,7 +207,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
   scrollContent: { padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   balanceAmount: { fontWeight: '900', color: '#fff', marginBottom: 16, letterSpacing: 0.5 },
   balanceActions: { flexDirection: 'row', gap: 10 },
   addMoneyButton: { backgroundColor: '#fff', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 1 },
-  addMoneyText: { fontWeight: '800', color: '#F97316' },
+  addMoneyText: { fontWeight: '800', color: '#10b981' },
   historyButton: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
   historyButtonText: { fontWeight: '700', color: '#fff' },
   section: { marginBottom: 16 },
@@ -232,12 +232,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontWeight: '800', color: '#1e293b' },
   quickActions: { flexDirection: 'row', gap: 12 },
   actionCardWrapper: { flex: 1 },
-  actionCard: { backgroundColor: '#fff', alignItems: 'center', elevation: 4, shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+  actionCard: { backgroundColor: '#fff', alignItems: 'center', elevation: 4, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
   actionIconGradient: { alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   actionText: { fontWeight: '800', color: '#1e293b', marginBottom: 2 },
   actionSubtext: { color: '#94a3b8', fontWeight: '500' },
   brandingSection: { alignItems: 'center', marginTop: 16, paddingVertical: 20 },
   brandingLogo: { width: 50, height: 50, borderRadius: 14, marginBottom: 8 },
-  brandingText: { fontSize: 18, fontWeight: '900', color: '#F97316' },
+  brandingText: { fontSize: 18, fontWeight: '900', color: '#10b981' },
   brandingSubtext: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
 });

@@ -41,7 +41,7 @@ export default function Index() {
   };
 
   return (
-    <LinearGradient colors={['#F97316', '#EA580C', '#C2410C']} style={styles.container}>
+    <LinearGradient colors={['#10b981', '#EA580C', '#C2410C']} style={styles.container}>
       {/* Decorative circles */}
       <View style={styles.circle1} />
       <View style={styles.circle2} />

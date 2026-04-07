@@ -132,13 +132,13 @@ export default function PaymentStatusScreen() {
           </TouchableOpacity>
           <Text style={styles.webViewTitle}>Complete Payment</Text>
           <View style={styles.statusIndicator}>
-            {checking && <ActivityIndicator size="small" color="#F97316" />}
+            {checking && <ActivityIndicator size="small" color="#10b981" />}
           </View>
         </View>
         <View style={styles.amountBar}><Text style={styles.amountBarText}>Amount: ₹{params.amount}</Text></View>
         <WebView source={{ uri: params.paymentUrl }} style={styles.webView} startInLoadingState renderLoading={() => (
           <View style={styles.webViewLoading}>
-            <ActivityIndicator size="large" color="#F97316" />
+            <ActivityIndicator size="large" color="#10b981" />
             <Text style={styles.loadingText}>Loading payment page...</Text>
           </View>
         )} />
@@ -171,14 +171,14 @@ export default function PaymentStatusScreen() {
               <Text style={styles.openWebViewText}>{Platform.OS === 'web' ? 'Open Payment (New Tab)' : 'Open Payment Page'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.checkButton} onPress={checkPaymentStatus} disabled={checking}>
-              {checking ? <ActivityIndicator color="#F97316" size="small" /> : (<><Ionicons name="refresh" size={20} color="#F97316" /><Text style={styles.checkButtonText}>Check Status</Text></>)}
+              {checking ? <ActivityIndicator color="#10b981" size="small" /> : (<><Ionicons name="refresh" size={20} color="#10b981" /><Text style={styles.checkButtonText}>Check Status</Text></>)}
             </TouchableOpacity>
           </View>
         )}
         <View style={styles.buttonContainer}>
           {status === 'failed' && (
             <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-              <Ionicons name="refresh" size={20} color="#F97316" />
+              <Ionicons name="refresh" size={20} color="#10b981" />
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>
           )}
@@ -193,17 +193,17 @@ export default function PaymentStatusScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
-  webViewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#FDBA74' },
-  closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF7ED', alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
+  webViewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#bbf7d0' },
+  closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center' },
   webViewTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
   statusIndicator: { width: 40, alignItems: 'center' },
-  amountBar: { backgroundColor: '#F97316', paddingVertical: 8, alignItems: 'center' },
+  amountBar: { backgroundColor: '#10b981', paddingVertical: 8, alignItems: 'center' },
   amountBarText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   webView: { flex: 1 },
-  webViewLoading: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF7ED' },
+  webViewLoading: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f0fdf4' },
   loadingText: { marginTop: 12, fontSize: 14, color: '#64748b' },
-  bottomBar: { padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#FDBA74' },
+  bottomBar: { padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#bbf7d0' },
   cancelButton: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: '#ef4444' },
   cancelButtonText: { fontSize: 15, fontWeight: '700', color: '#ef4444' },
   content: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
@@ -212,16 +212,16 @@ const styles = StyleSheet.create({
   statusSubtitle: { fontSize: 14, color: '#64748b', marginBottom: 24 },
   amountCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, width: '100%', elevation: 4 },
   amountLabel: { fontSize: 12, color: '#64748b', marginBottom: 4 },
-  amountValue: { fontSize: 36, fontWeight: '900', color: '#F97316' },
+  amountValue: { fontSize: 36, fontWeight: '900', color: '#10b981' },
   orderId: { fontSize: 11, color: '#94a3b8', marginTop: 8 },
   pendingActions: { width: '100%', gap: 12, marginBottom: 24 },
-  openWebViewButton: { backgroundColor: '#F97316', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  openWebViewButton: { backgroundColor: '#10b981', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   openWebViewText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   checkButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12 },
-  checkButtonText: { fontSize: 14, color: '#F97316', fontWeight: '600' },
+  checkButtonText: { fontSize: 14, color: '#10b981', fontWeight: '600' },
   buttonContainer: { flexDirection: 'row', gap: 16, width: '100%' },
-  retryButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, borderWidth: 2, borderColor: '#F97316' },
-  retryButtonText: { fontSize: 14, fontWeight: '700', color: '#F97316' },
-  homeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#F97316', borderRadius: 14, paddingVertical: 16 },
+  retryButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, borderWidth: 2, borderColor: '#10b981' },
+  retryButtonText: { fontSize: 14, fontWeight: '700', color: '#10b981' },
+  homeButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#10b981', borderRadius: 14, paddingVertical: 16 },
   homeButtonText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

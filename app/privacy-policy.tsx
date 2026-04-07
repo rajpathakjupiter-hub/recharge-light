@@ -11,8 +11,8 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#F97316" />
-      <LinearGradient colors={['#F97316', '#EA580C']} style={styles.header}>
+      <StatusBar barStyle="light-content" backgroundColor="#10b981" />
+      <LinearGradient colors={['#10b981', '#EA580C']} style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -58,7 +58,7 @@ export default function PrivacyPolicyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  container: { flex: 1, backgroundColor: '#f0fdf4' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 },
   backButton: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -67,9 +67,9 @@ const styles = StyleSheet.create({
   lastUpdated: { fontSize: 12, color: '#94a3b8', marginBottom: 16, fontWeight: '500' },
   paragraph: { fontSize: 14, color: '#475569', lineHeight: 22, marginBottom: 16 },
   bold: { fontWeight: '700', color: '#1e293b' },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#F97316', marginTop: 20, marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#10b981', marginTop: 20, marginBottom: 12 },
   bulletPoint: { fontSize: 14, color: '#475569', lineHeight: 24, marginLeft: 8, marginBottom: 8 },
-  contactEmail: { fontSize: 14, color: '#F97316', fontWeight: '700', marginTop: 8 },
+  contactEmail: { fontSize: 14, color: '#10b981', fontWeight: '700', marginTop: 8 },
   footer: { marginTop: 32, alignItems: 'center' },
   footerText: { fontSize: 12, color: '#94a3b8' },
 });

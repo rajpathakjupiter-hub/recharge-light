@@ -14,6 +14,7 @@ import {
   BackHandler,
   Dimensions,
   Linking,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -24,7 +25,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { WebView } from "react-native-webview";
 
 const { width } = Dimensions.get("window");
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://rechargelight.in';
 
 type ScreenState = "main" | "loading" | "webview" | "success" | "failed";
 
@@ -80,7 +81,6 @@ export default function AddMoneyScreen() {
       const res = await axios.get(BACKEND_URL + "/api/payment-gateway-status", { timeout: 10000 });
       if (res.data?.status === "success" && res.data?.gateways) {
         setGatewayStatus(res.data.gateways);
-        // Auto-select first available gateway
         if (res.data.gateways.gateway1?.enabled) {
           setSelectedGateway(1);
         } else if (res.data.gateways.gateway2?.enabled) {
@@ -88,7 +88,11 @@ export default function AddMoneyScreen() {
         }
       }
     } catch (e) {
-      console.log("Gateway status fetch failed");
+      // Default to both enabled if API fails
+      setGatewayStatus({
+        gateway1: { name: "TezIndia", code: "tezindia", enabled: true },
+        gateway2: { name: "ekQR", code: "ekqr", enabled: true }
+      });
     }
     setLoadingGateway(false);
   };
@@ -140,7 +144,7 @@ export default function AddMoneyScreen() {
     const amt = parseInt(amount);
     const minAmount = selectedGateway === 2 ? 10 : 100;
     if (!amt || amt < minAmount) {
-      Alert.alert("Error", `Minimum amount is Rs.${minAmount}`);
+      Alert.alert("Error", `Minimum amount is ₹${minAmount}`);
       return;
     }
 
@@ -164,16 +168,21 @@ export default function AddMoneyScreen() {
         setScreenState("webview");
         startStatusCheck(res.data.order_id, selectedGateway);
       } else {
-        Alert.alert("Error", res.data?.message || "Failed");
+        Alert.alert("Error", res.data?.message || "Failed to create payment");
         setScreenState("main");
       }
     } catch (e: any) {
-      Alert.alert("Error", e.response?.data?.message || "Failed");
+      Alert.alert("Error", e.response?.data?.message || "Payment creation failed");
       setScreenState("main");
     }
   };
 
-  const handleCancel = () => { stopStatusCheck(); setErrorMessage("Payment Cancelled"); setScreenState("failed"); animateResult(); };
+  const handleCancel = () => { 
+    stopStatusCheck(); 
+    setErrorMessage("Payment Cancelled"); 
+    setScreenState("failed"); 
+    animateResult(); 
+  };
 
   const animateResult = () => {
     scaleAnim.setValue(0);
@@ -195,19 +204,36 @@ export default function AddMoneyScreen() {
     setErrorMessage("");
   };
 
-  const getStatusColor = (s: string) => {
-    if (s === "success") return "#22c55e";
-    if (s === "pending") return "#f59e0b";
-    if (s === "failed") return "#ef4444";
-    return "#64748b";
+  const openInChrome = () => {
+    if (paymentUrl) {
+      // Try to open in Chrome specifically
+      const chromeUrl = `googlechrome://${paymentUrl.replace(/^https?:\/\//, '')}`;
+      Linking.canOpenURL(chromeUrl).then(supported => {
+        if (supported) {
+          Linking.openURL(chromeUrl);
+        } else {
+          // Fallback to default browser with intent
+          Linking.openURL(paymentUrl);
+        }
+      }).catch(() => {
+        Linking.openURL(paymentUrl);
+      });
+    }
   };
 
-  const openPaymentInBrowser = () => {
+  const openInBrowser = () => {
     if (paymentUrl) {
       Linking.openURL(paymentUrl).catch(() => {
         Alert.alert("Error", "Could not open browser");
       });
     }
+  };
+
+  const getStatusColor = (s: string) => {
+    if (s === "success") return "#10b981";
+    if (s === "pending") return "#f59e0b";
+    if (s === "failed") return "#ef4444";
+    return "#64748b";
   };
 
   // WEBVIEW SCREEN
@@ -221,7 +247,7 @@ export default function AddMoneyScreen() {
           <View style={styles.wvHeaderCenter}>
             <Text style={styles.wvTitle}>Secure Payment</Text>
             <View style={styles.wvSecureBadge}>
-              <Ionicons name="shield-checkmark" size={12} color="#22c55e" />
+              <Ionicons name="shield-checkmark" size={12} color="#10b981" />
               <Text style={styles.wvSecureText}>256-bit SSL</Text>
             </View>
           </View>
@@ -229,6 +255,7 @@ export default function AddMoneyScreen() {
             <Text style={styles.wvAmount}>₹{paymentAmount}</Text>
           </View>
         </View>
+        
         <View style={{ flex: 1, backgroundColor: "#fff" }}>
           <WebView
             ref={webViewRef}
@@ -240,7 +267,9 @@ export default function AddMoneyScreen() {
             cacheEnabled={false}
             incognito
             onShouldStartLoadWithRequest={(request) => {
-              if (request.url.startsWith("upi:") || request.url.startsWith("intent:") || request.url.startsWith("gpay:") || request.url.startsWith("phonepe:") || request.url.startsWith("paytm:")) {
+              if (request.url.startsWith("upi:") || request.url.startsWith("intent:") || 
+                  request.url.startsWith("gpay:") || request.url.startsWith("phonepe:") || 
+                  request.url.startsWith("paytm:")) {
                 Linking.openURL(request.url).catch(() => {});
                 return false;
               }
@@ -248,27 +277,36 @@ export default function AddMoneyScreen() {
             }}
             renderLoading={() => (
               <View style={styles.wvLoading}>
-                <ActivityIndicator size="large" color="#F97316" />
-                <Text style={styles.wvLoadingText}>Loading Payment...</Text>
+                <ActivityIndicator size="large" color="#10b981" />
+                <Text style={styles.wvLoadingText}>Loading Payment Page...</Text>
               </View>
             )}
           />
         </View>
+
         <View style={styles.wvFooter}>
           <View style={styles.wvStatusRow}>
-            <ActivityIndicator size="small" color="#22c55e" />
-            <Text style={styles.wvStatusText}>Checking payment status...</Text>
+            <ActivityIndicator size="small" color="#10b981" />
+            <Text style={styles.wvStatusText}>Auto-checking payment status...</Text>
           </View>
-          <View style={styles.wvBtnRow}>
-            <TouchableOpacity style={styles.wvBrowserBtn} onPress={openPaymentInBrowser}>
-              <Ionicons name="open-outline" size={18} color="#3b82f6" />
-              <Text style={styles.wvBrowserText}>Open in Browser</Text>
+          
+          {/* Browser Buttons */}
+          <View style={styles.browserBtnRow}>
+            <TouchableOpacity style={styles.chromeBtnLarge} onPress={openInChrome}>
+              <LinearGradient colors={["#4285F4", "#34A853"]} style={styles.chromeBtnGrad}>
+                <Ionicons name="logo-chrome" size={22} color="#fff" />
+                <Text style={styles.chromeBtnText}>Open in Chrome</Text>
+              </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.wvCancelBtn} onPress={handleCancel}>
-              <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
-              <Text style={styles.wvCancelText}>Cancel</Text>
+            <TouchableOpacity style={styles.browserBtn} onPress={openInBrowser}>
+              <Ionicons name="globe-outline" size={20} color="#6366f1" />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={styles.wvCancelBtn} onPress={handleCancel}>
+            <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
+            <Text style={styles.wvCancelText}>Cancel Payment</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -280,22 +318,40 @@ export default function AddMoneyScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.resultBox}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <View style={[styles.resultIcon, { backgroundColor: "rgba(34,197,94,0.1)" }]}>
-              <Ionicons name="checkmark-circle" size={80} color="#22c55e" />
-            </View>
+            <LinearGradient colors={["#10b981", "#059669"]} style={styles.resultIconBg}>
+              <Ionicons name="checkmark-circle" size={60} color="#fff" />
+            </LinearGradient>
           </Animated.View>
           <Animated.View style={{ opacity: fadeAnim, alignItems: "center", width: "100%" }}>
-            <Text style={[styles.resultTitle, { color: "#22c55e" }]}>Payment Successful!</Text>
+            <Text style={[styles.resultTitle, { color: "#10b981" }]}>Payment Successful!</Text>
             <Text style={styles.resultSub}>Your wallet has been credited</Text>
             <View style={styles.resultCard}>
-              <View style={styles.resultRow}><Text style={styles.resultLabel}>Amount</Text><Text style={[styles.resultValue, { color: "#22c55e" }]}>₹{paymentAmount}</Text></View>
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Amount</Text>
+                <Text style={[styles.resultValue, { color: "#10b981" }]}>₹{paymentAmount}</Text>
+              </View>
               <View style={styles.resultDivider} />
-              <View style={styles.resultRow}><Text style={styles.resultLabel}>Order ID</Text><Text style={styles.resultSmall}>{orderId}</Text></View>
-              {utr ? <><View style={styles.resultDivider} /><View style={styles.resultRow}><Text style={styles.resultLabel}>UTR</Text><Text style={styles.resultSmall}>{utr}</Text></View></> : null}
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Order ID</Text>
+                <Text style={styles.resultSmall}>{orderId}</Text>
+              </View>
+              {utr ? (
+                <>
+                  <View style={styles.resultDivider} />
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>UTR</Text>
+                    <Text style={styles.resultSmall}>{utr}</Text>
+                  </View>
+                </>
+              ) : null}
             </View>
             <View style={styles.resultBtns}>
-              <TouchableOpacity style={styles.btnOutline} onPress={reset}><Text style={styles.btnOutlineText}>Add More</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.btnFilled} onPress={() => router.replace("/(tabs)")}><Text style={styles.btnFilledText}>Home</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnOutlineGreen} onPress={reset}>
+                <Text style={styles.btnOutlineGreenText}>Add More</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnFilledGreen} onPress={() => router.replace("/(tabs)")}>
+                <Text style={styles.btnFilledText}>Go Home</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -309,20 +365,35 @@ export default function AddMoneyScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.resultBox}>
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <View style={[styles.resultIcon, { backgroundColor: "rgba(239,68,68,0.1)" }]}>
-              <Ionicons name="close-circle" size={80} color="#ef4444" />
+            <View style={[styles.resultIconBg, { backgroundColor: "#fef2f2" }]}>
+              <Ionicons name="close-circle" size={60} color="#ef4444" />
             </View>
           </Animated.View>
           <Animated.View style={{ opacity: fadeAnim, alignItems: "center", width: "100%" }}>
             <Text style={[styles.resultTitle, { color: "#ef4444" }]}>Payment Failed</Text>
-            <Text style={styles.resultSub}>{errorMessage || "Could not complete"}</Text>
+            <Text style={styles.resultSub}>{errorMessage || "Could not complete payment"}</Text>
             <View style={styles.resultCard}>
-              <View style={styles.resultRow}><Text style={styles.resultLabel}>Amount</Text><Text style={styles.resultValue}>₹{paymentAmount}</Text></View>
-              {orderId ? <><View style={styles.resultDivider} /><View style={styles.resultRow}><Text style={styles.resultLabel}>Order</Text><Text style={styles.resultSmall}>{orderId}</Text></View></> : null}
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Amount</Text>
+                <Text style={styles.resultValue}>₹{paymentAmount}</Text>
+              </View>
+              {orderId ? (
+                <>
+                  <View style={styles.resultDivider} />
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>Order ID</Text>
+                    <Text style={styles.resultSmall}>{orderId}</Text>
+                  </View>
+                </>
+              ) : null}
             </View>
             <View style={styles.resultBtns}>
-              <TouchableOpacity style={styles.btnOutline} onPress={() => router.replace("/(tabs)")}><Text style={styles.btnOutlineText}>Home</Text></TouchableOpacity>
-              <TouchableOpacity style={[styles.btnFilled, { backgroundColor: "#ef4444" }]} onPress={reset}><Text style={styles.btnFilledText}>Retry</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnOutlineGreen} onPress={() => router.replace("/(tabs)")}>
+                <Text style={styles.btnOutlineGreenText}>Go Home</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.btnFilledGreen, { backgroundColor: "#ef4444" }]} onPress={reset}>
+                <Text style={styles.btnFilledText}>Try Again</Text>
+              </TouchableOpacity>
             </View>
           </Animated.View>
         </View>
@@ -335,15 +406,16 @@ export default function AddMoneyScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#F97316" />
+          <LinearGradient colors={["#10b981", "#059669"]} style={styles.loadingIconBg}>
+            <ActivityIndicator size="large" color="#fff" />
+          </LinearGradient>
           <Text style={styles.loadingTitle}>Creating Payment...</Text>
-          <Text style={styles.loadingSub}>Please wait</Text>
+          <Text style={styles.loadingSub}>Please wait a moment</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Check if both gateways are off
   const bothGatewaysOff = gatewayStatus && !gatewayStatus.gateway1?.enabled && !gatewayStatus.gateway2?.enabled;
 
   // MAIN SCREEN
@@ -355,74 +427,106 @@ export default function AddMoneyScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Money</Text>
+          <View style={styles.headerCenter}>
+            <Image 
+              source={require('../assets/images/rechargelight-logo.png')} 
+              style={styles.headerLogo} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.headerTitle}>Add Money</Text>
+          </View>
           <View style={styles.headerIcon}>
-            <Ionicons name="wallet" size={24} color="#F97316" />
+            <Ionicons name="wallet" size={24} color="#10b981" />
           </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           
-          {/* Gateway Selection */}
           {loadingGateway ? (
             <View style={styles.gatewayLoading}>
-              <ActivityIndicator size="small" color="#F97316" />
-              <Text style={styles.gatewayLoadingText}>Loading payment options...</Text>
+              <ActivityIndicator size="small" color="#10b981" />
+              <Text style={styles.gatewayLoadingText}>Loading payment gateways...</Text>
             </View>
           ) : bothGatewaysOff ? (
             <View style={styles.maintenanceBanner}>
-              <Ionicons name="construct" size={40} color="#f59e0b" />
+              <Ionicons name="construct" size={50} color="#f59e0b" />
               <Text style={styles.maintenanceTitle}>Under Maintenance</Text>
-              <Text style={styles.maintenanceText}>Payment gateways are currently unavailable. Please try again later.</Text>
+              <Text style={styles.maintenanceText}>Payment gateways are temporarily unavailable. Please try again later.</Text>
             </View>
           ) : (
             <>
-              {/* Gateway Options */}
+              {/* Payment Gateway Selection */}
               <Text style={styles.sectionTitle}>Select Payment Gateway</Text>
-              <View style={styles.gatewayRow}>
-                {gatewayStatus?.gateway1?.enabled && (
+              <View style={styles.gatewayContainer}>
+                
+                {/* Gateway 1 - TezIndia */}
+                {(gatewayStatus?.gateway1?.enabled ?? true) && (
                   <TouchableOpacity 
-                    style={[styles.gatewayCard, selectedGateway === 1 && styles.gatewayCardActive]}
+                    style={[styles.gatewayCard, selectedGateway === 1 && styles.gatewayCardSelected]}
                     onPress={() => setSelectedGateway(1)}
+                    activeOpacity={0.8}
                   >
                     <LinearGradient 
-                      colors={selectedGateway === 1 ? ["#F97316", "#EA580C"] : ["#f1f5f9", "#e2e8f0"]} 
-                      style={styles.gatewayGrad}
+                      colors={selectedGateway === 1 ? ["#10b981", "#059669"] : ["#f8fafc", "#f1f5f9"]} 
+                      style={styles.gatewayCardInner}
                     >
-                      <Ionicons name="flash" size={24} color={selectedGateway === 1 ? "#fff" : "#64748b"} />
-                      <Text style={[styles.gatewayName, selectedGateway === 1 && styles.gatewayNameActive]}>
-                        {gatewayStatus.gateway1.name || "TezIndia"}
-                      </Text>
-                      <Text style={[styles.gatewayMin, selectedGateway === 1 && styles.gatewayMinActive]}>Min ₹100</Text>
+                      <View style={styles.gatewayIconBox}>
+                        <Ionicons name="flash" size={28} color={selectedGateway === 1 ? "#fff" : "#10b981"} />
+                      </View>
+                      <View style={styles.gatewayInfo}>
+                        <Text style={[styles.gatewayName, selectedGateway === 1 && styles.gatewayNameActive]}>
+                          TezIndia Gateway
+                        </Text>
+                        <Text style={[styles.gatewayDesc, selectedGateway === 1 && styles.gatewayDescActive]}>
+                          Fast UPI Payment • Min ₹100
+                        </Text>
+                      </View>
+                      <View style={[styles.gatewayRadio, selectedGateway === 1 && styles.gatewayRadioActive]}>
+                        {selectedGateway === 1 && <Ionicons name="checkmark" size={16} color="#fff" />}
+                      </View>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
-                {gatewayStatus?.gateway2?.enabled && (
+
+                {/* Gateway 2 - ekQR */}
+                {(gatewayStatus?.gateway2?.enabled ?? true) && (
                   <TouchableOpacity 
-                    style={[styles.gatewayCard, selectedGateway === 2 && styles.gatewayCardActive]}
+                    style={[styles.gatewayCard, selectedGateway === 2 && styles.gatewayCardSelected2]}
                     onPress={() => setSelectedGateway(2)}
+                    activeOpacity={0.8}
                   >
                     <LinearGradient 
-                      colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#f1f5f9", "#e2e8f0"]} 
-                      style={styles.gatewayGrad}
+                      colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#f8fafc", "#f1f5f9"]} 
+                      style={styles.gatewayCardInner}
                     >
-                      <Ionicons name="qr-code" size={24} color={selectedGateway === 2 ? "#fff" : "#64748b"} />
-                      <Text style={[styles.gatewayName, selectedGateway === 2 && styles.gatewayNameActive]}>
-                        {gatewayStatus.gateway2.name || "ekQR"}
-                      </Text>
-                      <Text style={[styles.gatewayMin, selectedGateway === 2 && styles.gatewayMinActive]}>Min ₹10</Text>
+                      <View style={[styles.gatewayIconBox, { backgroundColor: selectedGateway === 2 ? "rgba(255,255,255,0.2)" : "#ede9fe" }]}>
+                        <Ionicons name="qr-code" size={28} color={selectedGateway === 2 ? "#fff" : "#6366f1"} />
+                      </View>
+                      <View style={styles.gatewayInfo}>
+                        <Text style={[styles.gatewayName, selectedGateway === 2 && styles.gatewayNameActive]}>
+                          ekQR Gateway
+                        </Text>
+                        <Text style={[styles.gatewayDesc, selectedGateway === 2 && styles.gatewayDescActive]}>
+                          QR Code Payment • Min ₹10
+                        </Text>
+                      </View>
+                      <View style={[styles.gatewayRadio, selectedGateway === 2 && styles.gatewayRadioActive2]}>
+                        {selectedGateway === 2 && <Ionicons name="checkmark" size={16} color="#fff" />}
+                      </View>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* UPI Apps Info */}
-              <View style={styles.upiAppsRow}>
-                <Text style={styles.upiAppsLabel}>Supported:</Text>
-                <Text style={styles.upiApp}>GPay</Text>
-                <Text style={styles.upiApp}>PhonePe</Text>
-                <Text style={styles.upiApp}>Paytm</Text>
-                <Text style={styles.upiApp}>BHIM</Text>
+              {/* Supported Apps */}
+              <View style={styles.supportedApps}>
+                <Text style={styles.supportedLabel}>Supported UPI Apps:</Text>
+                <View style={styles.appBadges}>
+                  <View style={styles.appBadge}><Text style={styles.appBadgeText}>GPay</Text></View>
+                  <View style={styles.appBadge}><Text style={styles.appBadgeText}>PhonePe</Text></View>
+                  <View style={styles.appBadge}><Text style={styles.appBadgeText}>Paytm</Text></View>
+                  <View style={styles.appBadge}><Text style={styles.appBadgeText}>BHIM</Text></View>
+                </View>
               </View>
 
               {/* Amount Input */}
@@ -467,18 +571,22 @@ export default function AddMoneyScreen() {
                 activeOpacity={0.8}
               >
                 <LinearGradient 
-                  colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#F97316", "#EA580C"]} 
+                  colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#10b981", "#059669"]} 
                   style={styles.payBtnGrad}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                 >
-                  <Ionicons name="flash" size={22} color="#fff" />
-                  <Text style={styles.payBtnText}>Pay ₹{amount || "0"} with UPI</Text>
+                  <Ionicons name={selectedGateway === 2 ? "qr-code" : "flash"} size={22} color="#fff" />
+                  <Text style={styles.payBtnText}>
+                    Pay ₹{amount || "0"} via {selectedGateway === 2 ? "QR Code" : "UPI"}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Security Badge */}
+              {/* Security */}
               <View style={styles.securityRow}>
-                <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
-                <Text style={styles.securityText}>100% Secure - 256-bit SSL Encrypted</Text>
+                <Ionicons name="shield-checkmark" size={16} color="#10b981" />
+                <Text style={styles.securityText}>100% Secure Payment • 256-bit SSL Encrypted</Text>
               </View>
             </>
           )}
@@ -488,28 +596,38 @@ export default function AddMoneyScreen() {
             <View style={styles.historyHeader}>
               <Text style={styles.historyTitle}>Recent Payments</Text>
               <TouchableOpacity onPress={fetchTransactionHistory}>
-                <Ionicons name="refresh" size={18} color="#F97316" />
+                <Ionicons name="refresh" size={18} color="#10b981" />
               </TouchableOpacity>
             </View>
-            {loadingHistory ? <ActivityIndicator color="#F97316" style={{ marginTop: 20 }} /> : transactions.length === 0 ? (
+            {loadingHistory ? (
+              <ActivityIndicator color="#10b981" style={{ marginTop: 20 }} />
+            ) : transactions.length === 0 ? (
               <View style={styles.emptyHistory}>
                 <Ionicons name="receipt-outline" size={40} color="#cbd5e1" />
                 <Text style={styles.emptyText}>No recent payments</Text>
               </View>
-            ) : transactions.slice(0, 5).map((t, i) => (
-              <View key={t.order_id || i} style={styles.historyItem}>
-                <View style={[styles.historyIcon, { backgroundColor: getStatusColor(t.status) + "15" }]}>
-                  <Ionicons name={t.status === "success" ? "checkmark-circle" : t.status === "failed" ? "close-circle" : "time"} size={22} color={getStatusColor(t.status)} />
+            ) : (
+              transactions.slice(0, 5).map((t, i) => (
+                <View key={t.order_id || i} style={styles.historyItem}>
+                  <View style={[styles.historyIcon, { backgroundColor: getStatusColor(t.status) + "15" }]}>
+                    <Ionicons 
+                      name={t.status === "success" ? "checkmark-circle" : t.status === "failed" ? "close-circle" : "time"} 
+                      size={22} 
+                      color={getStatusColor(t.status)} 
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.historyAmt}>+₹{t.amount}</Text>
+                    <Text style={styles.historyDate}>{t.created_at || "Recently"}</Text>
+                  </View>
+                  <View style={[styles.historyBadge, { backgroundColor: getStatusColor(t.status) + "15" }]}>
+                    <Text style={[styles.historyBadgeText, { color: getStatusColor(t.status) }]}>
+                      {(t.status || "PENDING").toUpperCase()}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.historyAmt}>+₹{t.amount}</Text>
-                  <Text style={styles.historyDate}>{t.created_at || "Recently"}</Text>
-                </View>
-                <View style={[styles.historyBadge, { backgroundColor: getStatusColor(t.status) + "15" }]}>
-                  <Text style={[styles.historyBadgeText, { color: getStatusColor(t.status) }]}>{(t.status || "PENDING").toUpperCase()}</Text>
-                </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -518,88 +636,239 @@ export default function AddMoneyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF7ED" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFF7ED", borderBottomWidth: 1, borderBottomColor: "#FDBA74" },
-  backBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 2 },
+  container: { flex: 1, backgroundColor: "#f0fdf4" },
+  
+  // Header
+  header: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "space-between", 
+    paddingHorizontal: 16, 
+    paddingVertical: 12, 
+    backgroundColor: "#f0fdf4", 
+    borderBottomWidth: 1, 
+    borderBottomColor: "#bbf7d0" 
+  },
+  backBtn: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 14, 
+    backgroundColor: "#fff", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    elevation: 2,
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  headerCenter: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerLogo: { width: 32, height: 32, borderRadius: 8 },
   headerTitle: { fontSize: 20, fontWeight: "800", color: "#1e293b" },
-  headerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(249,115,22,0.1)", alignItems: "center", justifyContent: "center" },
+  headerIcon: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 14, 
+    backgroundColor: "#dcfce7", 
+    alignItems: "center", 
+    justifyContent: "center" 
+  },
+  
   scroll: { padding: 16, paddingBottom: 40 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#64748b", marginBottom: 12, marginTop: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#64748b", marginBottom: 12, marginTop: 8 },
   
   // Gateway Selection
-  gatewayLoading: { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 20, gap: 10 },
+  gatewayLoading: { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 30, gap: 10 },
   gatewayLoadingText: { fontSize: 14, color: "#64748b" },
-  gatewayRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  gatewayCard: { flex: 1, borderRadius: 16, overflow: "hidden", borderWidth: 2, borderColor: "transparent" },
-  gatewayCardActive: { borderColor: "#F97316" },
-  gatewayGrad: { padding: 16, alignItems: "center", gap: 8 },
-  gatewayName: { fontSize: 14, fontWeight: "700", color: "#64748b" },
+  gatewayContainer: { gap: 12, marginBottom: 20 },
+  gatewayCard: { 
+    borderRadius: 16, 
+    overflow: "hidden", 
+    borderWidth: 2, 
+    borderColor: "#e2e8f0",
+  },
+  gatewayCardSelected: { borderColor: "#10b981" },
+  gatewayCardSelected2: { borderColor: "#6366f1" },
+  gatewayCardInner: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    padding: 16, 
+    gap: 14 
+  },
+  gatewayIconBox: { 
+    width: 52, 
+    height: 52, 
+    borderRadius: 14, 
+    backgroundColor: "#dcfce7", 
+    alignItems: "center", 
+    justifyContent: "center" 
+  },
+  gatewayInfo: { flex: 1 },
+  gatewayName: { fontSize: 16, fontWeight: "800", color: "#1e293b" },
   gatewayNameActive: { color: "#fff" },
-  gatewayMin: { fontSize: 11, color: "#94a3b8" },
-  gatewayMinActive: { color: "rgba(255,255,255,0.8)" },
+  gatewayDesc: { fontSize: 12, color: "#64748b", marginTop: 2 },
+  gatewayDescActive: { color: "rgba(255,255,255,0.85)" },
+  gatewayRadio: { 
+    width: 24, 
+    height: 24, 
+    borderRadius: 12, 
+    borderWidth: 2, 
+    borderColor: "#cbd5e1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gatewayRadioActive: { backgroundColor: "#10b981", borderColor: "#10b981" },
+  gatewayRadioActive2: { backgroundColor: "#6366f1", borderColor: "#6366f1" },
   
-  // Maintenance Banner
-  maintenanceBanner: { backgroundColor: "#fef3c7", borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 20 },
-  maintenanceTitle: { fontSize: 18, fontWeight: "800", color: "#b45309", marginTop: 12 },
-  maintenanceText: { fontSize: 14, color: "#92400e", textAlign: "center", marginTop: 8 },
+  // Maintenance
+  maintenanceBanner: { 
+    backgroundColor: "#fef3c7", 
+    borderRadius: 20, 
+    padding: 30, 
+    alignItems: "center", 
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#fcd34d",
+  },
+  maintenanceTitle: { fontSize: 20, fontWeight: "800", color: "#b45309", marginTop: 12 },
+  maintenanceText: { fontSize: 14, color: "#92400e", textAlign: "center", marginTop: 8, lineHeight: 20 },
   
-  // UPI Apps
-  upiAppsRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" },
-  upiAppsLabel: { fontSize: 12, color: "#64748b", fontWeight: "500" },
-  upiApp: { fontSize: 11, fontWeight: "600", color: "#F97316", backgroundColor: "rgba(249,115,22,0.1)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  // Supported Apps
+  supportedApps: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    flexWrap: "wrap",
+    gap: 8, 
+    marginBottom: 20,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 12,
+  },
+  supportedLabel: { fontSize: 12, color: "#64748b", fontWeight: "600" },
+  appBadges: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  appBadge: { 
+    backgroundColor: "#dcfce7", 
+    paddingHorizontal: 10, 
+    paddingVertical: 4, 
+    borderRadius: 8 
+  },
+  appBadgeText: { fontSize: 11, fontWeight: "700", color: "#10b981" },
   
-  inputBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, borderWidth: 2, borderColor: "#FDBA74", paddingHorizontal: 16, marginBottom: 20 },
-  rupee: { fontSize: 26, fontWeight: "800", color: "#F97316", marginRight: 8 },
-  input: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1e293b", paddingVertical: 16 },
+  // Input
+  inputBox: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    borderRadius: 16, 
+    borderWidth: 2, 
+    borderColor: "#bbf7d0", 
+    paddingHorizontal: 16, 
+    marginBottom: 20 
+  },
+  rupee: { fontSize: 28, fontWeight: "800", color: "#10b981", marginRight: 8 },
+  input: { flex: 1, fontSize: 24, fontWeight: "700", color: "#1e293b", paddingVertical: 16 },
   clearBtn: { padding: 4 },
+  
+  // Quick amounts
   quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
-  quickBtn: { paddingVertical: 14, paddingHorizontal: 18, backgroundColor: "#fff", borderRadius: 12, borderWidth: 2, borderColor: "#FDBA74" },
-  quickBtnActive: { borderColor: "#F97316", backgroundColor: "rgba(249,115,22,0.1)" },
+  quickBtn: { 
+    paddingVertical: 14, 
+    paddingHorizontal: 18, 
+    backgroundColor: "#fff", 
+    borderRadius: 12, 
+    borderWidth: 2, 
+    borderColor: "#bbf7d0" 
+  },
+  quickBtnActive: { borderColor: "#10b981", backgroundColor: "#dcfce7" },
   quickText: { fontSize: 15, fontWeight: "700", color: "#64748b" },
-  quickTextActive: { color: "#F97316" },
+  quickTextActive: { color: "#10b981" },
+  
+  // Pay button
   payBtn: { borderRadius: 16, overflow: "hidden", marginBottom: 16 },
   payBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, gap: 10 },
   payBtnDisabled: { opacity: 0.5 },
   payBtnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  
+  // Security
   securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 24 },
   securityText: { fontSize: 12, color: "#64748b", fontWeight: "500" },
+  
+  // History
   historySection: { backgroundColor: "#fff", borderRadius: 20, padding: 18 },
   historyHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   historyTitle: { fontSize: 16, fontWeight: "800", color: "#1e293b" },
   emptyHistory: { alignItems: "center", paddingVertical: 30 },
   emptyText: { fontSize: 13, color: "#94a3b8", marginTop: 10 },
-  historyItem: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFF7ED", borderRadius: 14, padding: 14, marginBottom: 8 },
+  historyItem: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#f0fdf4", 
+    borderRadius: 14, 
+    padding: 14, 
+    marginBottom: 8 
+  },
   historyIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 12 },
-  historyAmt: { fontSize: 16, fontWeight: "800", color: "#22c55e" },
+  historyAmt: { fontSize: 16, fontWeight: "800", color: "#10b981" },
   historyDate: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
   historyBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
   historyBadgeText: { fontSize: 10, fontWeight: "700" },
   
-  // WebView styles
-  wvHeader: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#FDBA74" },
-  wvCloseBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
+  // WebView
+  wvHeader: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#fff", 
+    paddingHorizontal: 16, 
+    paddingVertical: 14, 
+    borderBottomWidth: 1, 
+    borderBottomColor: "#bbf7d0" 
+  },
+  wvCloseBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center" },
   wvHeaderCenter: { flex: 1, marginLeft: 12 },
   wvTitle: { fontSize: 17, fontWeight: "800", color: "#1e293b" },
   wvSecureBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  wvSecureText: { fontSize: 10, color: "#22c55e", fontWeight: "500" },
-  wvAmountBox: { backgroundColor: "#FFF7ED", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
-  wvAmount: { fontSize: 18, fontWeight: "800", color: "#F97316" },
+  wvSecureText: { fontSize: 10, color: "#10b981", fontWeight: "600" },
+  wvAmountBox: { backgroundColor: "#dcfce7", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
+  wvAmount: { fontSize: 18, fontWeight: "800", color: "#10b981" },
   wvLoading: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
   wvLoadingText: { fontSize: 14, color: "#64748b", marginTop: 12 },
-  wvFooter: { backgroundColor: "#fff", padding: 16, borderTopWidth: 1, borderTopColor: "#FDBA74" },
-  wvStatusRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 },
-  wvStatusText: { fontSize: 13, color: "#22c55e", fontWeight: "600" },
-  wvBtnRow: { flexDirection: "row", gap: 12 },
-  wvBrowserBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, backgroundColor: "#eff6ff", borderRadius: 14 },
-  wvBrowserText: { fontSize: 14, fontWeight: "700", color: "#3b82f6" },
-  wvCancelBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, backgroundColor: "#fef2f2", borderRadius: 14 },
-  wvCancelText: { fontSize: 14, fontWeight: "700", color: "#ef4444" },
+  wvFooter: { backgroundColor: "#fff", padding: 16, borderTopWidth: 1, borderTopColor: "#bbf7d0", gap: 12 },
+  wvStatusRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  wvStatusText: { fontSize: 13, color: "#10b981", fontWeight: "600" },
   
+  // Browser buttons
+  browserBtnRow: { flexDirection: "row", gap: 10 },
+  chromeBtnLarge: { flex: 1, borderRadius: 14, overflow: "hidden" },
+  chromeBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 14, gap: 8 },
+  chromeBtnText: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  browserBtn: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 14, 
+    backgroundColor: "#eef2ff", 
+    alignItems: "center", 
+    justifyContent: "center" 
+  },
+  
+  wvCancelBtn: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    gap: 6, 
+    paddingVertical: 14, 
+    backgroundColor: "#fef2f2", 
+    borderRadius: 14 
+  },
+  wvCancelText: { fontSize: 15, fontWeight: "700", color: "#ef4444" },
+  
+  // Loading & Result
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
-  loadingTitle: { fontSize: 18, fontWeight: "700", color: "#1e293b", marginTop: 16 },
+  loadingIconBg: { width: 80, height: 80, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  loadingTitle: { fontSize: 18, fontWeight: "700", color: "#1e293b", marginTop: 20 },
   loadingSub: { fontSize: 14, color: "#64748b", marginTop: 4 },
-  resultBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#FFF7ED" },
-  resultIcon: { width: 130, height: 130, borderRadius: 65, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  
+  resultBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#f0fdf4" },
+  resultIconBg: { width: 100, height: 100, borderRadius: 30, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   resultTitle: { fontSize: 26, fontWeight: "900", marginBottom: 8 },
   resultSub: { fontSize: 14, color: "#64748b", marginBottom: 24 },
   resultCard: { width: "100%", backgroundColor: "#fff", borderRadius: 20, padding: 20, marginBottom: 24 },
@@ -609,8 +878,8 @@ const styles = StyleSheet.create({
   resultSmall: { fontSize: 12, color: "#475569", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
   resultDivider: { height: 1, backgroundColor: "#f1f5f9" },
   resultBtns: { flexDirection: "row", gap: 14, width: "100%" },
-  btnOutline: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#fff", borderRadius: 14, borderWidth: 2, borderColor: "#F97316" },
-  btnOutlineText: { fontSize: 15, fontWeight: "800", color: "#F97316" },
-  btnFilled: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#F97316", borderRadius: 14 },
+  btnOutlineGreen: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#fff", borderRadius: 14, borderWidth: 2, borderColor: "#10b981" },
+  btnOutlineGreenText: { fontSize: 15, fontWeight: "800", color: "#10b981" },
+  btnFilledGreen: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#10b981", borderRadius: 14 },
   btnFilledText: { fontSize: 15, fontWeight: "800", color: "#fff" },
 });

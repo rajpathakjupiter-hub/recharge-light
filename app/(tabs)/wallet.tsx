@@ -118,8 +118,8 @@ export default function WalletScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#F97316"
-            colors={['#F97316']}
+            tintColor="#10b981"
+            colors={['#10b981']}
           />
         }
       >
@@ -127,13 +127,13 @@ export default function WalletScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { fontSize: isSmallDevice ? 20 : 24 }]}>My Wallet</Text>
           <View style={styles.headerIcon}>
-            <Ionicons name="wallet" size={isSmallDevice ? 16 : 20} color="#F97316" />
+            <Ionicons name="wallet" size={isSmallDevice ? 16 : 20} color="#10b981" />
           </View>
         </View>
 
         {/* Balance Card */}
         <LinearGradient 
-          colors={['#F97316', '#EA580C', '#C2410C']} 
+          colors={['#10b981', '#059669', '#047857']} 
           start={{ x: 0, y: 0 }} 
           end={{ x: 1, y: 1 }} 
           style={styles.balanceCard}
@@ -152,9 +152,9 @@ export default function WalletScreen() {
             onPress={() => router.push('/add-money')}
             activeOpacity={0.8}
           >
-            <Ionicons name="add-circle" size={20} color="#F97316" />
+            <Ionicons name="add-circle" size={20} color="#10b981" />
             <Text style={styles.addMoneyText}>Add Money via UPI</Text>
-            <Ionicons name="chevron-forward" size={18} color="#F97316" />
+            <Ionicons name="chevron-forward" size={18} color="#10b981" />
           </TouchableOpacity>
         </LinearGradient>
 
@@ -180,13 +180,13 @@ export default function WalletScreen() {
         <View style={styles.historySection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>UPI Load History</Text>
-            <Ionicons name="time" size={18} color="#F97316" />
+            <Ionicons name="time" size={18} color="#10b981" />
           </View>
           {loading ? (
-            <ActivityIndicator color="#F97316" style={styles.loader} />
+            <ActivityIndicator color="#10b981" style={styles.loader} />
           ) : transactions.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <LinearGradient colors={['#F97316', '#EA580C']} style={styles.emptyIconBg}>
+              <LinearGradient colors={['#10b981', '#059669']} style={styles.emptyIconBg}>
                 <Ionicons name="card-outline" size={32} color="#fff" />
               </LinearGradient>
               <Text style={styles.emptyText}>No UPI transactions yet</Text>
@@ -210,7 +210,7 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#f0fdf4',
   },
   scrollContent: {
     padding: 16,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
       android: { elevation: 4 },
     }),
   },
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: '#F97316',
+    color: '#10b981',
   },
   statsRow: {
     flexDirection: 'row',
@@ -316,9 +316,9 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     ...Platform.select({
-      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      ios: { shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
       android: { elevation: 2 },
     }),
   },
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#FDBA74',
+    borderColor: '#bbf7d0',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
       android: { elevation: 2 },
