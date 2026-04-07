@@ -1,12 +1,12 @@
 workflows:
   android-apk-build:
-    name: Pay2hub Android APK
+    name: Recharge Light Android APK
     max_build_duration: 60
     instance_type: mac_mini_m2
     
     environment:
       vars:
-        EXPO_PUBLIC_BACKEND_URL: "https://pay2hub.in"
+        EXPO_PUBLIC_BACKEND_URL: "https://rechargelight.in"
       node: 20
       java: 17
     
@@ -22,7 +22,7 @@ workflows:
       
       - name: Set environment
         script: |
-          echo "EXPO_PUBLIC_BACKEND_URL=https://pay2hub.in" > .env
+          echo "EXPO_PUBLIC_BACKEND_URL=https://rechargelight.in" > .env
       
       - name: Setup Android SDK
         script: |
@@ -44,23 +44,23 @@ workflows:
     publishing:
       email:
         recipients:
-          - support@pay2hub.in
+          - support@rechargelight.in
         notify:
           success: true
           failure: true
 
   android-aab-playstore:
-    name: Pay2hub PlayStore AAB
+    name: Recharge Light PlayStore AAB
     max_build_duration: 60
     instance_type: mac_mini_m2
     
     environment:
       vars:
-        EXPO_PUBLIC_BACKEND_URL: "https://pay2hub.in"
-        PACKAGE_NAME: "com.pay2hub.app"
-        KEY_ALIAS: "pay2hub"
-        KEY_PASSWORD: "Pay2hub@2024"
-        STORE_PASSWORD: "Pay2hub@2024"
+        EXPO_PUBLIC_BACKEND_URL: "https://rechargelight.in"
+        PACKAGE_NAME: "com.rechargelight.app"
+        KEY_ALIAS: "rechargelight"
+        KEY_PASSWORD: "RechargeLight@2024"
+        STORE_PASSWORD: "RechargeLight@2024"
       node: 20
       java: 17
     
@@ -76,7 +76,7 @@ workflows:
       
       - name: Set environment
         script: |
-          echo "EXPO_PUBLIC_BACKEND_URL=https://pay2hub.in" > .env
+          echo "EXPO_PUBLIC_BACKEND_URL=https://rechargelight.in" > .env
       
       - name: Setup Android SDK
         script: |
@@ -91,14 +91,14 @@ workflows:
         script: |
           keytool -genkeypair -v \
             -storetype PKCS12 \
-            -keystore android/app/pay2hub-release.keystore \
+            -keystore android/app/rechargelight-release.keystore \
             -alias $KEY_ALIAS \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
             -storepass $STORE_PASSWORD \
             -keypass $KEY_PASSWORD \
-            -dname "CN=Pay2hub, OU=Mobile, O=Pay2hub, L=India, ST=India, C=IN"
+            -dname "CN=Recharge Light, OU=Mobile, O=Recharge Light, L=India, ST=India, C=IN"
       
       - name: Configure release signing
         script: |
@@ -109,20 +109,18 @@ workflows:
           with open(gradle_path, "r") as f:
               content = f.read()
           
-          store_pass = os.environ.get("STORE_PASSWORD", "Pay2hub@2024")
-          key_alias = os.environ.get("KEY_ALIAS", "pay2hub")
-          key_pass = os.environ.get("KEY_PASSWORD", "Pay2hub@2024")
+          store_pass = os.environ.get("STORE_PASSWORD", "RechargeLight@2024")
+          key_alias = os.environ.get("KEY_ALIAS", "rechargelight")
+          key_pass = os.environ.get("KEY_PASSWORD", "RechargeLight@2024")
           
-          # Add release signing config after debug signing config
           release_config = f'''
             release {{
-                storeFile file("pay2hub-release.keystore")
+                storeFile file("rechargelight-release.keystore")
                 storePassword "{store_pass}"
                 keyAlias "{key_alias}"
                 keyPassword "{key_pass}"
             }}'''
           
-          # Find the debug signingConfig closing brace and add release after it
           import re
           pattern = r'(signingConfigs\s*\{[^}]*debug\s*\{[^}]*\})'
           match = re.search(pattern, content, re.DOTALL)
@@ -130,7 +128,6 @@ workflows:
               insert_pos = match.end()
               content = content[:insert_pos] + release_config + content[insert_pos:]
           
-          # Replace debug signing in release buildType with release signing
           content = content.replace(
               "signingConfig signingConfigs.debug",
               "signingConfig signingConfigs.release"
@@ -153,19 +150,19 @@ workflows:
     publishing:
       email:
         recipients:
-          - support@pay2hub.in
+          - support@rechargelight.in
         notify:
           success: true
           failure: true
 
   android-aab-unsigned:
-    name: Pay2hub PlayStore AAB (Unsigned)
+    name: Recharge Light PlayStore AAB (Unsigned)
     max_build_duration: 60
     instance_type: mac_mini_m2
     
     environment:
       vars:
-        EXPO_PUBLIC_BACKEND_URL: "https://pay2hub.in"
+        EXPO_PUBLIC_BACKEND_URL: "https://rechargelight.in"
       node: 20
       java: 17
     
@@ -181,7 +178,7 @@ workflows:
       
       - name: Set environment
         script: |
-          echo "EXPO_PUBLIC_BACKEND_URL=https://pay2hub.in" > .env
+          echo "EXPO_PUBLIC_BACKEND_URL=https://rechargelight.in" > .env
       
       - name: Setup Android SDK
         script: |
@@ -203,7 +200,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - support@pay2hub.in
+          - support@rechargelight.in
         notify:
           success: true
           failure: true
