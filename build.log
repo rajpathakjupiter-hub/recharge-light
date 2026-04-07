@@ -1,0 +1,29 @@
+Resolved "production" environment for the build. Learn more: https://docs.expo.dev/eas/environment-variables/#setting-the-environment-for-your-builds
+No environment variables with visibility "Plain text" and "Sensitive" found for the "production" environment on EAS.
+
+
+
+✔ Using remote Android credentials (Expo server)
+✔ Using Keystore from configuration: Build Credentials wRigxc4hNK (default)
+
+Compressing project files and uploading to EAS Build. Learn more: https://expo.fyi/eas-build-archive
+- Compressing project files
+Your project archive is 281 MB. You can reduce its size and the time it takes to upload by excluding files that are unnecessary for the build process in .easignore file. Learn more: https://expo.fyi/eas-build-archive
+- Uploading to EAS Build (0 / 281 MB)
+✔ Uploaded to EAS 9s
+- Computing project fingerprint
+⌛️ Computing the project fingerprint is taking longer than expected...
+⏩ To skip this step, set the environment variable: EAS_SKIP_AUTO_FINGERPRINT=1
+✔ Computed project fingerprint
+
+See logs: https://expo.dev/accounts/pay2hubapp/projects/pay2hub-app/builds/e0bb149c-a263-42e5-afcb-02b7fe9bbe81
+
+Waiting for build to complete. You can press Ctrl+C to exit.
+- Waiting for build to complete.
+✔ Build finished
+
+🤖 Android app:
+https://expo.dev/artifacts/eas/tKxpxvGhHGRVsGBVVjpQtc.apk
+
+Input is required, but stdin is not readable. Failed to display prompt: Install and run the Android build on an emulator?
+    Error: build command failed.
