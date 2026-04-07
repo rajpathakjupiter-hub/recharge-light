@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
-  Animated, Dimensions, Image, Platform,
+  Animated, useWindowDimensions, Image, Platform,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,9 +11,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { width, height } = useWindowDimensions();
+  const isSmallDevice = width < 360;
+  const isMediumDevice = width >= 360 && width < 400;
+  
   const getApiKey = async () => {
     const apiKey = await AsyncStorage.getItem('api_key');
     return apiKey || '';
@@ -23,15 +26,12 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Animation values
   const headerAnim = useRef(new Animated.Value(0)).current;
   const balanceAnim = useRef(new Animated.Value(0)).current;
   const cardScale = useRef(new Animated.Value(0.9)).current;
   const quickAction1 = useRef(new Animated.Value(0)).current;
   const quickAction2 = useRef(new Animated.Value(0)).current;
-  const servicesAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   const fetchData = async () => {
     try {
@@ -60,7 +60,6 @@ export default function HomeScreen() {
     cardScale.setValue(0.9);
     quickAction1.setValue(0);
     quickAction2.setValue(0);
-    servicesAnim.setValue(0);
 
     Animated.stagger(80, [
       Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 60, friction: 10 }),
@@ -70,20 +69,13 @@ export default function HomeScreen() {
       ]),
       Animated.spring(quickAction1, { toValue: 1, useNativeDriver: true, tension: 60, friction: 9 }),
       Animated.spring(quickAction2, { toValue: 1, useNativeDriver: true, tension: 60, friction: 9 }),
-      Animated.spring(servicesAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 10 }),
     ]).start();
 
-    // Pulse animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
       ])
-    ).start();
-
-    // Shimmer animation
-    Animated.loop(
-      Animated.timing(shimmerAnim, { toValue: 1, duration: 2000, useNativeDriver: true })
     ).start();
   };
 
@@ -107,166 +99,145 @@ export default function HomeScreen() {
     return 'Good Evening';
   };
 
+  // Dynamic styles based on screen size
+  const dynamicStyles = {
+    headerLogo: { width: isSmallDevice ? 40 : 50, height: isSmallDevice ? 40 : 50 },
+    userName: { fontSize: isSmallDevice ? 16 : 20 },
+    balanceAmount: { fontSize: isSmallDevice ? 28 : isMediumDevice ? 34 : 42 },
+    actionIcon: { width: isSmallDevice ? 50 : 70, height: isSmallDevice ? 50 : 70, borderRadius: isSmallDevice ? 16 : 22 },
+    actionIconSize: isSmallDevice ? 24 : 32,
+    actionCard: { padding: isSmallDevice ? 16 : 24, borderRadius: isSmallDevice ? 18 : 24 },
+    actionText: { fontSize: isSmallDevice ? 14 : 18 },
+    addMoneyBtn: { paddingVertical: isSmallDevice ? 10 : 14, paddingHorizontal: isSmallDevice ? 16 : 24 },
+    historyBtn: { paddingVertical: isSmallDevice ? 10 : 14, paddingHorizontal: isSmallDevice ? 12 : 20 },
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Platform.OS === 'ios' ? 100 : 90 }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2E8B2B" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F97316" />}
       >
-        {/* Header */}
+        {/* Header with Logo */}
         <Animated.View style={[styles.header, {
           opacity: headerAnim,
           transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }],
         }]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>{getGreeting()} 👋</Text>
-            <Text style={styles.userName}>{userName}</Text>
+            <Image source={require('../../assets/images/rechargelight-logo.png')} style={[styles.headerLogo, dynamicStyles.headerLogo]} resizeMode="contain" />
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+              <Text style={[styles.userName, { fontSize: dynamicStyles.userName.fontSize }]} numberOfLines={1}>{userName}</Text>
+            </View>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.notifButton}>
-              <Ionicons name="notifications-outline" size={22} color="#1a1a2e" />
-              <View style={styles.notifDot} />
-            </TouchableOpacity>
-          </View>
+          <Image source={require('../../assets/images/rechargelight-logo.png')} style={styles.headerBrandLogo} resizeMode="contain" />
         </Animated.View>
 
-        {/* Balance Card */}
+        {/* Balance Card - Orange Theme */}
         <Animated.View style={{ opacity: balanceAnim, transform: [{ scale: cardScale }] }}>
-          <LinearGradient colors={['#2E8B2B', '#e67e4a', '#d4723e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
+          <LinearGradient colors={['#F97316', '#EA580C', '#C2410C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}>
             <View style={styles.decorCircle1} />
             <View style={styles.decorCircle2} />
             <View style={styles.balanceTop}>
               <View style={styles.balanceIconContainer}>
-                <Ionicons name="wallet" size={20} color="#fff" />
+                <Ionicons name="wallet" size={isSmallDevice ? 18 : 22} color="#fff" />
               </View>
               <Text style={styles.balanceLabel}>Wallet Balance</Text>
             </View>
-            <Text style={styles.balanceAmount}>₹{balance.toFixed(2)}</Text>
+            <Text style={[styles.balanceAmount, { fontSize: dynamicStyles.balanceAmount.fontSize }]}>₹{balance.toFixed(2)}</Text>
             <View style={styles.balanceActions}>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                <TouchableOpacity style={styles.addMoneyButton} onPress={() => router.push('/add-money')} activeOpacity={0.8}>
-                  <Ionicons name="add-circle" size={18} color="#2E8B2B" />
-                  <Text style={styles.addMoneyText}>Add Money</Text>
+              <Animated.View style={{ transform: [{ scale: pulseAnim }], flex: 1 }}>
+                <TouchableOpacity style={[styles.addMoneyButton, dynamicStyles.addMoneyBtn]} onPress={() => router.push('/add-money')} activeOpacity={0.8}>
+                  <Ionicons name="add-circle" size={isSmallDevice ? 16 : 20} color="#F97316" />
+                  <Text style={[styles.addMoneyText, { fontSize: isSmallDevice ? 12 : 15 }]}>Add Money</Text>
                 </TouchableOpacity>
               </Animated.View>
-              <TouchableOpacity style={styles.historyButton} onPress={() => router.push('/(tabs)/history')} activeOpacity={0.8}>
-                <Ionicons name="time-outline" size={18} color="#fff" />
-                <Text style={styles.historyButtonText}>History</Text>
+              <TouchableOpacity style={[styles.historyButton, dynamicStyles.historyBtn]} onPress={() => router.push('/(tabs)/history')} activeOpacity={0.8}>
+                <Ionicons name="time-outline" size={isSmallDevice ? 14 : 18} color="#fff" />
+                <Text style={[styles.historyButtonText, { fontSize: isSmallDevice ? 11 : 14 }]}>History</Text>
               </TouchableOpacity>
             </View>
           </LinearGradient>
         </Animated.View>
 
-        {/* Quick Recharge */}
+        {/* Services - Only Mobile & DTH */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Recharge</Text>
-            <Ionicons name="flash" size={18} color="#2E8B2B" />
+            <Text style={[styles.sectionTitle, { fontSize: isSmallDevice ? 16 : 20 }]}>Recharge Services</Text>
+            <Ionicons name="flash" size={isSmallDevice ? 14 : 18} color="#F97316" />
           </View>
           <View style={styles.quickActions}>
             <Animated.View style={[styles.actionCardWrapper, {
               opacity: quickAction1,
               transform: [{ translateX: quickAction1.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }],
             }]}>
-              <TouchableOpacity style={styles.actionCard} onPress={() => handleRecharge('prepaid')} activeOpacity={0.7}>
-                <LinearGradient colors={['#ff6b6b', '#ee5a5a']} style={styles.actionIconGradient}>
-                  <Ionicons name="phone-portrait" size={28} color="#fff" />
+              <TouchableOpacity style={[styles.actionCard, dynamicStyles.actionCard]} onPress={() => handleRecharge('prepaid')} activeOpacity={0.7}>
+                <LinearGradient colors={['#F97316', '#EA580C']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
+                  <Ionicons name="phone-portrait" size={dynamicStyles.actionIconSize} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.actionText}>Mobile</Text>
-                <Text style={styles.actionSubtext}>Prepaid Recharge</Text>
+                <Text style={[styles.actionText, { fontSize: dynamicStyles.actionText.fontSize }]}>Mobile</Text>
+                <Text style={[styles.actionSubtext, { fontSize: isSmallDevice ? 11 : 13 }]}>Prepaid Recharge</Text>
               </TouchableOpacity>
             </Animated.View>
             <Animated.View style={[styles.actionCardWrapper, {
               opacity: quickAction2,
               transform: [{ translateX: quickAction2.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
             }]}>
-              <TouchableOpacity style={styles.actionCard} onPress={() => handleRecharge('dth')} activeOpacity={0.7}>
-                <LinearGradient colors={['#6366f1', '#8b5cf6']} style={styles.actionIconGradient}>
-                  <Ionicons name="tv" size={28} color="#fff" />
+              <TouchableOpacity style={[styles.actionCard, dynamicStyles.actionCard]} onPress={() => handleRecharge('dth')} activeOpacity={0.7}>
+                <LinearGradient colors={['#F97316', '#EA580C']} style={[styles.actionIconGradient, dynamicStyles.actionIcon]}>
+                  <Ionicons name="tv" size={dynamicStyles.actionIconSize} color="#fff" />
                 </LinearGradient>
-                <Text style={styles.actionText}>DTH</Text>
-                <Text style={styles.actionSubtext}>TV Recharge</Text>
+                <Text style={[styles.actionText, { fontSize: dynamicStyles.actionText.fontSize }]}>DTH</Text>
+                <Text style={[styles.actionSubtext, { fontSize: isSmallDevice ? 11 : 13 }]}>TV Recharge</Text>
               </TouchableOpacity>
             </Animated.View>
           </View>
         </View>
 
-        {/* Services Grid */}
-        <Animated.View style={[styles.section, {
-          opacity: servicesAnim,
-          transform: [{ translateY: servicesAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-        }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-          </View>
-          <View style={styles.servicesGrid}>
-            <TouchableOpacity style={styles.serviceItem} onPress={() => router.push('/(tabs)/wallet')}>
-              <LinearGradient colors={['#22c55e', '#16a34a']} style={styles.serviceIcon}>
-                <Ionicons name="wallet-outline" size={24} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.serviceText}>Wallet</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem} onPress={() => router.push('/(tabs)/margin')}>
-              <LinearGradient colors={['#a855f7', '#9333ea']} style={styles.serviceIcon}>
-                <Ionicons name="trending-up-outline" size={24} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.serviceText}>Margin</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem} onPress={() => router.push('/(tabs)/history')}>
-              <LinearGradient colors={['#3b82f6', '#2563eb']} style={styles.serviceIcon}>
-                <Ionicons name="receipt-outline" size={24} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.serviceText}>History</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem} onPress={() => router.push('/(tabs)/profile')}>
-              <LinearGradient colors={['#f59e0b', '#d97706']} style={styles.serviceIcon}>
-                <Ionicons name="person-outline" size={24} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.serviceText}>Profile</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        <View style={{ height: 20 }} />
+        {/* Recharge Light Branding */}
+        <View style={styles.brandingSection}>
+          <Image source={require('../../assets/images/rechargelight-logo.png')} style={styles.brandingLogo} resizeMode="contain" />
+          <Text style={styles.brandingText}>Recharge Light</Text>
+          <Text style={styles.brandingSubtext}>Fast • Secure • Reliable</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
-  scrollContent: { padding: 16, paddingBottom: 100 },
+  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  scrollContent: { padding: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerLeft: { flex: 1 },
-  greeting: { fontSize: 14, color: '#888', marginBottom: 2 },
-  userName: { fontSize: 22, fontWeight: 'bold', color: '#1a1a2e' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  notifButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 3 },
-  notifDot: { position: 'absolute', top: 10, right: 11, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#fff' },
-  balanceCard: { borderRadius: 24, padding: 24, marginBottom: 24, overflow: 'hidden' },
-  decorCircle1: { position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.1)' },
-  decorCircle2: { position: 'absolute', bottom: -30, left: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.08)' },
-  balanceTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  headerLogo: { borderRadius: 14 },
+  greeting: { fontSize: 12, color: '#94a3b8', marginBottom: 2 },
+  userName: { fontWeight: 'bold', color: '#1e293b' },
+  headerBrandLogo: { width: 40, height: 40, borderRadius: 12 },
+  balanceCard: { borderRadius: 24, padding: 20, marginBottom: 20, overflow: 'hidden' },
+  decorCircle1: { position: 'absolute', top: -50, right: -50, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' },
+  decorCircle2: { position: 'absolute', bottom: -40, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.08)' },
+  balanceTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   balanceIconContainer: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  balanceLabel: { fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
-  balanceAmount: { fontSize: 38, fontWeight: 'bold', color: '#fff', marginBottom: 20, letterSpacing: 0.5 },
-  balanceActions: { flexDirection: 'row', gap: 12 },
-  addMoneyButton: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  addMoneyText: { fontSize: 14, fontWeight: '700', color: '#2E8B2B' },
-  historyButton: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  historyButtonText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  section: { marginBottom: 20 },
+  balanceLabel: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  balanceAmount: { fontWeight: '900', color: '#fff', marginBottom: 16, letterSpacing: 0.5 },
+  balanceActions: { flexDirection: 'row', gap: 10 },
+  addMoneyButton: { backgroundColor: '#fff', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, flex: 1 },
+  addMoneyText: { fontWeight: '800', color: '#F97316' },
+  historyButton: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  historyButtonText: { fontWeight: '700', color: '#fff' },
+  section: { marginBottom: 16 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a1a2e' },
-  quickActions: { flexDirection: 'row', gap: 14 },
+  sectionTitle: { fontWeight: '800', color: '#1e293b' },
+  quickActions: { flexDirection: 'row', gap: 12 },
   actionCardWrapper: { flex: 1 },
-  actionCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, alignItems: 'center', elevation: 4 },
-  actionIconGradient: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  actionText: { fontSize: 16, fontWeight: '700', color: '#1a1a2e', marginBottom: 4 },
-  actionSubtext: { fontSize: 12, color: '#888' },
-  servicesGrid: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 3 },
-  serviceItem: { flex: 1, alignItems: 'center', gap: 8 },
-  serviceIcon: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  serviceText: { fontSize: 12, fontWeight: '600', color: '#666', textAlign: 'center' },
+  actionCard: { backgroundColor: '#fff', alignItems: 'center', elevation: 4, shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+  actionIconGradient: { alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionText: { fontWeight: '800', color: '#1e293b', marginBottom: 2 },
+  actionSubtext: { color: '#94a3b8', fontWeight: '500' },
+  brandingSection: { alignItems: 'center', marginTop: 16, paddingVertical: 20 },
+  brandingLogo: { width: 50, height: 50, borderRadius: 14, marginBottom: 8 },
+  brandingText: { fontSize: 18, fontWeight: '900', color: '#F97316' },
+  brandingSubtext: { fontSize: 12, color: '#94a3b8', marginTop: 2, fontWeight: '500' },
 });

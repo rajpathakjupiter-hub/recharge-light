@@ -1,7 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Platform, View } from 'react-native';
-import { BlurView } from '@react-native-community/blur';
 
 export default function TabLayout() {
   return (
@@ -9,13 +8,11 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#ff6b35',
+        tabBarActiveTintColor: '#F97316',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
-        tabBarBackground: () => (
-          <View style={styles.tabBarBackground} />
-        ),
+        tabBarBackground: () => <View style={styles.tabBarBackground} />,
       }}
     >
       <Tabs.Screen
@@ -57,7 +54,7 @@ export default function TabLayout() {
           title: 'Margin',
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeTab : undefined}>
-              <Ionicons name={focused ? 'cash' : 'cash-outline'} size={22} color={color} />
+              <Ionicons name={focused ? 'trending-up' : 'trending-up-outline'} size={22} color={color} />
             </View>
           ),
         }}
@@ -90,15 +87,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     height: Platform.OS === 'ios' ? 88 : 72,
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-      },
-      android: {
-        elevation: 12,
-      },
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24 },
+      android: { elevation: 12 },
     }),
   },
   tabBarBackground: {
@@ -107,31 +97,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
   },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-  tabItem: {
-    paddingVertical: 4,
-    gap: 4,
-  },
+  tabLabel: { fontSize: 10, fontWeight: '700', marginTop: 4, letterSpacing: 0.3 },
+  tabItem: { paddingVertical: 4, gap: 4 },
   activeTab: {
-    backgroundColor: 'rgba(255,107,53,0.15)',
+    backgroundColor: 'rgba(249,115,22,0.15)',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
     ...Platform.select({
-      ios: {
-        shadowColor: '#ff6b35',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6 },
+      android: { elevation: 3 },
     }),
   },
 });

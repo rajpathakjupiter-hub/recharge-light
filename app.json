@@ -6,31 +6,26 @@
     "orientation": "portrait",
     "icon": "./assets/images/rechargelight-logo.png",
     "scheme": "rechargelight",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.rechargelight.app",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Scan QR codes for payments",
-        "NSPhotoLibraryUsageDescription": "Upload profile photos"
-      }
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rechargelight.app"
     },
     "android": {
       "package": "com.rechargelight.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/rechargelight-logo.png",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#F97316"
       },
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
-      ]
+        "android.permission.ACCESS_NETWORK_STATE"
+      ],
+      "jsEngine": "hermes",
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
     },
     "web": {
       "bundler": "metro",
@@ -38,16 +33,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/rechargelight-logo.png",
-          "imageWidth": 250,
-          "resizeMode": "contain",
-          "backgroundColor": "#FFFFFF"
-        }
-      ]
+      "expo-router"
     ],
     "experiments": {
       "typedRoutes": true

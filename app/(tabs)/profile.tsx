@@ -19,8 +19,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
-const SUPPORT_NUMBER = '02269710892';
-const DELETE_ACCOUNT_URL = 'https://rechargelight.in/delete-account.html';
+const SUPPORT_EMAIL = 'support@rechargelight.in';
+const SUPPORT_PHONE = '9876543210';
+const DELETE_ACCOUNT_URL = 'https://rechargelight.in/delete-account';
 
 export default function ProfileScreen() {
   const getApiKey = async () => {
@@ -44,12 +45,7 @@ export default function ProfileScreen() {
 
       if (response.data) {
         const newBalance = response.data.balance || response.data.total_balance || 0;
-        
-        setUserData((prev: any) => ({
-          ...prev,
-          wallet_balance: newBalance
-        }));
-
+        setUserData((prev: any) => ({ ...prev, wallet_balance: newBalance }));
         const storedData = await AsyncStorage.getItem('user_data');
         if (storedData) {
           const user = JSON.parse(storedData);
@@ -76,16 +72,8 @@ export default function ProfileScreen() {
     }
   };
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadUserData();
-      fetchBalance();
-    }, [])
-  );
+  useEffect(() => { loadUserData(); }, []);
+  useFocusEffect(useCallback(() => { loadUserData(); fetchBalance(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -95,51 +83,27 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      // Web ke liye native confirm dialog
-      if (window.confirm('Are you sure you want to logout?')) {
-        performLogout();
-      }
-    } else {
-      // Mobile ke liye Alert.alert
-      Alert.alert('Logout', 'Are you sure you want to logout?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: performLogout,
-        },
-      ]);
-    }
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: performLogout },
+    ]);
   };
 
   const performLogout = async () => {
     try {
-      // Clear all stored data
-      await AsyncStorage.removeItem('auth_token');
-      await AsyncStorage.removeItem('user_data');
       await AsyncStorage.clear();
-      
-      // Navigate to login
-      if (Platform.OS === 'web') {
-        // Web ke liye window.location use karo
-        window.location.href = '/login';
-      } else {
-        // Mobile ke liye router.replace
-        router.replace('/login');
-      }
+      router.replace('/login');
     } catch (error) {
-      console.error('Logout error:', error);
-      if (Platform.OS === 'web') {
-        alert('Failed to logout. Please try again.');
-      } else {
-        Alert.alert('Error', 'Failed to logout. Please try again.');
-      }
+      Alert.alert('Error', 'Failed to logout. Please try again.');
     }
   };
 
   const handleCall = () => {
-    Linking.openURL(`tel:${SUPPORT_NUMBER}`);
+    Linking.openURL(`tel:${SUPPORT_PHONE}`);
+  };
+
+  const handleEmail = () => {
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
   };
 
   const handleDeleteAccount = () => {
@@ -148,26 +112,12 @@ export default function ProfileScreen() {
       'Are you sure you want to delete your account? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            Linking.openURL(DELETE_ACCOUNT_URL);
-          },
-        },
+        { text: 'Delete', style: 'destructive', onPress: () => Linking.openURL(DELETE_ACCOUNT_URL) },
       ]
     );
   };
 
-  const MenuItem = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    iconColor = '#2E8B2B',
-    iconBg = 'rgba(240,138,93,0.12)',
-    danger = false,
-  }: any) => (
+  const MenuItem = ({ icon, title, subtitle, onPress, iconColor = '#F97316', iconBg = 'rgba(249,115,22,0.12)', danger = false }: any) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
       <View style={[styles.menuIcon, { backgroundColor: danger ? 'rgba(239,68,68,0.12)' : iconBg }]}>
         <Ionicons name={icon} size={20} color={danger ? '#ef4444' : iconColor} />
@@ -185,42 +135,54 @@ export default function ProfileScreen() {
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2E8B2B']} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
       >
+        {/* Header with Logo */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {userData?.name?.charAt(0).toUpperCase() || 'U'}
-            </Text>
-          </View>
+          <Image source={require('../../assets/images/rechargelight-logo.png')} style={styles.avatar} resizeMode="cover" />
           <Text style={styles.userName}>{userData?.name || 'User'}</Text>
           <Text style={styles.userMobile}>+91 {userData?.mobile}</Text>
         </View>
 
+        {/* Balance Card */}
         <View style={styles.balanceCard}>
           <TouchableOpacity style={styles.balanceContent} onPress={fetchBalance} activeOpacity={0.7}>
             <View style={styles.balanceIconRow}>
-              <Ionicons name="wallet" size={24} color="#22c55e" />
-              {balanceLoading && <ActivityIndicator size="small" color="#22c55e" style={{marginLeft: 8}} />}
+              <Ionicons name="wallet" size={26} color="#F97316" />
+              {balanceLoading && <ActivityIndicator size="small" color="#F97316" style={{marginLeft: 8}} />}
             </View>
             <Text style={styles.balanceValue}>₹{userData?.wallet_balance?.toFixed(2) || '0.00'}</Text>
             <Text style={styles.balanceLabel}>Wallet Balance (Tap to refresh)</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Support Section */}
         <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={styles.sectionTitle}>Help & Support</Text>
           <View style={styles.menuCard}>
             <MenuItem
               icon="call-outline"
-              title="Help & Support"
-              subtitle={`Call: +91 ${SUPPORT_NUMBER}`}
+              title="Call Support"
+              subtitle={SUPPORT_PHONE}
               onPress={handleCall}
+              iconColor="#22c55e"
+              iconBg="rgba(34,197,94,0.12)"
+            />
+            <MenuItem
+              icon="mail-outline"
+              title="Email Support"
+              subtitle={SUPPORT_EMAIL}
+              onPress={handleEmail}
               iconColor="#3b82f6"
               iconBg="rgba(59,130,246,0.12)"
             />
+          </View>
+        </View>
+
+        {/* Legal Section */}
+        <View style={styles.menuSection}>
+          <Text style={styles.sectionTitle}>Legal</Text>
+          <View style={styles.menuCard}>
             <MenuItem
               icon="document-text-outline"
               title="Terms & Conditions"
@@ -238,13 +200,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Account Section */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account</Text>
           <View style={styles.menuCard}>
             <MenuItem
               icon="trash-outline"
               title="Delete Account"
-              subtitle="Permanently delete your account"
               onPress={handleDeleteAccount}
               danger
             />
@@ -257,14 +219,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Footer Branding */}
         <View style={styles.footer}>
-          <Image
-            source={require('../../assets/images/rechargelight-logo.png')}
-            style={styles.footerLogo}
-            resizeMode="contain"
-          />
+          <Image source={require('../../assets/images/rechargelight-logo.png')} style={styles.footerLogo} resizeMode="contain" />
           <Text style={styles.appName}>Recharge Light</Text>
-          <Text style={styles.versionText}>Version 1.0.2</Text>
+          <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -272,159 +231,57 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 110 : 100,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingTop: 10,
-  },
+  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  scrollContent: { padding: 16, paddingBottom: Platform.OS === 'ios' ? 110 : 100 },
+  header: { alignItems: 'center', marginBottom: 20, paddingTop: 10 },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: '#2E8B2B',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 100,
+    height: 100,
+    borderRadius: 28,
     marginBottom: 14,
+    borderWidth: 4,
+    borderColor: '#F97316',
     ...Platform.select({
-      ios: {
-        shadowColor: '#2E8B2B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: { elevation: 6 },
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
+      android: { elevation: 8 },
     }),
   },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#1a1a2e',
-    marginBottom: 4,
-  },
-  userMobile: {
-    fontSize: 14,
-    color: '#888',
-  },
+  userName: { fontSize: 24, fontWeight: '900', color: '#1e293b', marginBottom: 4 },
+  userMobile: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
   balanceCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     marginBottom: 24,
+    borderWidth: 2,
+    borderColor: '#FDBA74',
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 16,
-      },
-      android: { elevation: 3 },
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16 },
+      android: { elevation: 4 },
     }),
   },
-  balanceContent: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  balanceIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  balanceValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#22c55e',
-    marginTop: 8,
-  },
-  balanceLabel: {
-    fontSize: 13,
-    color: '#999',
-    marginTop: 4,
-  },
-  menuSection: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#999',
-    marginBottom: 10,
-    marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  balanceContent: { alignItems: 'center', gap: 8 },
+  balanceIconRow: { flexDirection: 'row', alignItems: 'center' },
+  balanceValue: { fontSize: 36, fontWeight: '900', color: '#F97316', marginTop: 8 },
+  balanceLabel: { fontSize: 13, color: '#94a3b8', marginTop: 4, fontWeight: '500' },
+  menuSection: { marginBottom: 16 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#94a3b8', marginBottom: 10, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
   menuCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-      },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
       android: { elevation: 2 },
     }),
   },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f8f8f8',
-  },
-  menuIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuContent: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  menuTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  menuSubtitle: {
-    fontSize: 12,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 24,
-    paddingVertical: 20,
-  },
-  footerLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    marginBottom: 8,
-  },
-  appName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 4,
-  },
-  versionText: {
-    fontSize: 12,
-    color: '#bbb',
-  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },
+  menuIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  menuContent: { flex: 1, marginLeft: 14 },
+  menuTitle: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
+  menuSubtitle: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
+  footer: { alignItems: 'center', marginTop: 24, paddingVertical: 20 },
+  footerLogo: { width: 70, height: 70, borderRadius: 18, marginBottom: 10 },
+  appName: { fontSize: 20, fontWeight: '900', color: '#F97316', marginBottom: 4 },
+  versionText: { fontSize: 12, color: '#94a3b8' },
 });

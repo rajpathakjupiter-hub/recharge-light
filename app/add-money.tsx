@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,152 +10,506 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+  Animated,
+  BackHandler,
+  Dimensions,
+  Linking,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { LinearGradient } from "expo-linear-gradient";
+import { WebView } from "react-native-webview";
 
+const { width } = Dimensions.get("window");
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
+type ScreenState = "main" | "loading" | "webview" | "success" | "failed";
+
+interface GatewayStatus {
+  gateway1: { name: string; code: string; enabled: boolean };
+  gateway2: { name: string; code: string; enabled: boolean };
+}
+
 export default function AddMoneyScreen() {
-  const [amount, setAmount] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [screenState, setScreenState] = useState<ScreenState>("main");
+  const [amount, setAmount] = useState("");
+  const [orderId, setOrderId] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentUrl, setPaymentUrl] = useState("");
+  const [utr, setUtr] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedGateway, setSelectedGateway] = useState<1 | 2>(1);
+  const [gatewayStatus, setGatewayStatus] = useState<GatewayStatus | null>(null);
+  const [loadingGateway, setLoadingGateway] = useState(true);
+  
+  const webViewRef = useRef<WebView>(null);
+  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const quickAmounts = [100, 500, 1000, 2000, 5000, 10000];
+
+  useEffect(() => {
+    fetchGatewayStatus();
+    fetchTransactionHistory();
+    return () => stopStatusCheck();
+  }, []);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (screenState === "webview") { handleCancel(); return true; }
+      if (screenState === "loading") { return true; }
+      if (screenState === "main") { router.back(); return true; }
+      return false;
+    });
+    return () => backHandler.remove();
+  }, [screenState]);
 
   const getApiKey = async () => {
-    const apiKey = await AsyncStorage.getItem('api_key');
-    return apiKey || '';
+    try { return await AsyncStorage.getItem("api_key") || ""; } catch { return ""; }
   };
 
-  const quickAmounts = [10, 50, 100, 500, 1000, 2000];
+  const fetchGatewayStatus = async () => {
+    setLoadingGateway(true);
+    try {
+      const res = await axios.get(BACKEND_URL + "/api/payment-gateway-status", { timeout: 10000 });
+      if (res.data?.status === "success" && res.data?.gateways) {
+        setGatewayStatus(res.data.gateways);
+        // Auto-select first available gateway
+        if (res.data.gateways.gateway1?.enabled) {
+          setSelectedGateway(1);
+        } else if (res.data.gateways.gateway2?.enabled) {
+          setSelectedGateway(2);
+        }
+      }
+    } catch (e) {
+      console.log("Gateway status fetch failed");
+    }
+    setLoadingGateway(false);
+  };
 
-  const handleAddMoney = async () => {
-    const amountNum = parseInt(amount);
-    if (!amountNum || amountNum < 10) {
-      Alert.alert('Error', 'Minimum amount is ₹10');
+  const fetchTransactionHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const apiKey = await getApiKey();
+      if (apiKey) {
+        const res = await axios.get(BACKEND_URL + "/api/external/transactions?api_key=" + apiKey + "&type=upi&limit=10", { timeout: 15000 });
+        if (res.data?.status === "success") setTransactions(res.data.transactions || []);
+      }
+    } catch {}
+    setLoadingHistory(false);
+  };
+
+  const stopStatusCheck = () => {
+    if (statusCheckInterval.current) { clearInterval(statusCheckInterval.current); statusCheckInterval.current = null; }
+  };
+
+  const startStatusCheck = (oid: string, gateway: 1 | 2) => {
+    stopStatusCheck();
+    const statusEndpoint = gateway === 2 
+      ? "/api/external/payment2/status" 
+      : "/api/external/payment/status";
+    
+    statusCheckInterval.current = setInterval(async () => {
+      try {
+        const apiKey = await getApiKey();
+        const res = await axios.get(BACKEND_URL + statusEndpoint + "?api_key=" + apiKey + "&order_id=" + oid, { timeout: 10000 });
+        const status = res.data?.payment_status?.toUpperCase();
+        if (status === "SUCCESS") {
+          stopStatusCheck();
+          setUtr(res.data.utr || "");
+          setScreenState("success");
+          animateResult();
+          fetchTransactionHistory();
+        } else if (status === "FAILED") {
+          stopStatusCheck();
+          setErrorMessage(res.data.message || "Payment Failed");
+          setScreenState("failed");
+          animateResult();
+        }
+      } catch {}
+    }, 2000);
+  };
+
+  const handlePay = async () => {
+    const amt = parseInt(amount);
+    const minAmount = selectedGateway === 2 ? 10 : 100;
+    if (!amt || amt < minAmount) {
+      Alert.alert("Error", `Minimum amount is Rs.${minAmount}`);
       return;
     }
 
-    setLoading(true);
+    setScreenState("loading");
+    setErrorMessage("");
+
     try {
       const apiKey = await getApiKey();
-      const response = await axios.post(
-        BACKEND_URL + '/api/external/payment/create',
-        { 
-          api_key: apiKey,
-          amount: amountNum,
-          redirect_url: 'https://pay2hub.in/payment-success'
-        }
-      );
+      if (!apiKey) { Alert.alert("Error", "Please login again"); setScreenState("main"); return; }
 
-      if (response.data.payment_url) {
-        // Navigate to payment status screen with WebView
-        router.push({
-          pathname: '/payment-status',
-          params: {
-            orderId: response.data.order_id,
-            amount: amount,
-            paymentUrl: response.data.payment_url,
-          },
-        });
+      const endpoint = selectedGateway === 2 
+        ? "/api/external/payment2/create" 
+        : "/api/external/payment/create";
+
+      const res = await axios.post(BACKEND_URL + endpoint, { api_key: apiKey, amount: amt }, { timeout: 30000 });
+
+      if (res.data?.status === "success" && res.data?.payment_url) {
+        setPaymentUrl(res.data.payment_url);
+        setOrderId(res.data.order_id);
+        setPaymentAmount(amt);
+        setScreenState("webview");
+        startStatusCheck(res.data.order_id, selectedGateway);
       } else {
-        Alert.alert('Error', response.data.message || 'Failed to create payment');
+        Alert.alert("Error", res.data?.message || "Failed");
+        setScreenState("main");
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to create payment');
-    } finally {
-      setLoading(false);
+    } catch (e: any) {
+      Alert.alert("Error", e.response?.data?.message || "Failed");
+      setScreenState("main");
     }
   };
 
+  const handleCancel = () => { stopStatusCheck(); setErrorMessage("Payment Cancelled"); setScreenState("failed"); animateResult(); };
+
+  const animateResult = () => {
+    scaleAnim.setValue(0);
+    fadeAnim.setValue(0);
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const reset = () => {
+    stopStatusCheck();
+    setScreenState("main");
+    setPaymentUrl("");
+    setOrderId("");
+    setPaymentAmount(0);
+    setAmount("");
+    setUtr("");
+    setErrorMessage("");
+  };
+
+  const getStatusColor = (s: string) => {
+    if (s === "success") return "#22c55e";
+    if (s === "pending") return "#f59e0b";
+    if (s === "failed") return "#ef4444";
+    return "#64748b";
+  };
+
+  const openPaymentInBrowser = () => {
+    if (paymentUrl) {
+      Linking.openURL(paymentUrl).catch(() => {
+        Alert.alert("Error", "Could not open browser");
+      });
+    }
+  };
+
+  // WEBVIEW SCREEN
+  if (screenState === "webview") {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.wvHeader}>
+          <TouchableOpacity onPress={handleCancel} style={styles.wvCloseBtn}>
+            <Ionicons name="close" size={22} color="#1e293b" />
+          </TouchableOpacity>
+          <View style={styles.wvHeaderCenter}>
+            <Text style={styles.wvTitle}>Secure Payment</Text>
+            <View style={styles.wvSecureBadge}>
+              <Ionicons name="shield-checkmark" size={12} color="#22c55e" />
+              <Text style={styles.wvSecureText}>256-bit SSL</Text>
+            </View>
+          </View>
+          <View style={styles.wvAmountBox}>
+            <Text style={styles.wvAmount}>₹{paymentAmount}</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, backgroundColor: "#fff" }}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: paymentUrl }}
+            style={{ flex: 1 }}
+            javaScriptEnabled
+            domStorageEnabled
+            startInLoadingState
+            cacheEnabled={false}
+            incognito
+            onShouldStartLoadWithRequest={(request) => {
+              if (request.url.startsWith("upi:") || request.url.startsWith("intent:") || request.url.startsWith("gpay:") || request.url.startsWith("phonepe:") || request.url.startsWith("paytm:")) {
+                Linking.openURL(request.url).catch(() => {});
+                return false;
+              }
+              return true;
+            }}
+            renderLoading={() => (
+              <View style={styles.wvLoading}>
+                <ActivityIndicator size="large" color="#F97316" />
+                <Text style={styles.wvLoadingText}>Loading Payment...</Text>
+              </View>
+            )}
+          />
+        </View>
+        <View style={styles.wvFooter}>
+          <View style={styles.wvStatusRow}>
+            <ActivityIndicator size="small" color="#22c55e" />
+            <Text style={styles.wvStatusText}>Checking payment status...</Text>
+          </View>
+          <View style={styles.wvBtnRow}>
+            <TouchableOpacity style={styles.wvBrowserBtn} onPress={openPaymentInBrowser}>
+              <Ionicons name="open-outline" size={18} color="#3b82f6" />
+              <Text style={styles.wvBrowserText}>Open in Browser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.wvCancelBtn} onPress={handleCancel}>
+              <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
+              <Text style={styles.wvCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // SUCCESS SCREEN
+  if (screenState === "success") {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.resultBox}>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <View style={[styles.resultIcon, { backgroundColor: "rgba(34,197,94,0.1)" }]}>
+              <Ionicons name="checkmark-circle" size={80} color="#22c55e" />
+            </View>
+          </Animated.View>
+          <Animated.View style={{ opacity: fadeAnim, alignItems: "center", width: "100%" }}>
+            <Text style={[styles.resultTitle, { color: "#22c55e" }]}>Payment Successful!</Text>
+            <Text style={styles.resultSub}>Your wallet has been credited</Text>
+            <View style={styles.resultCard}>
+              <View style={styles.resultRow}><Text style={styles.resultLabel}>Amount</Text><Text style={[styles.resultValue, { color: "#22c55e" }]}>₹{paymentAmount}</Text></View>
+              <View style={styles.resultDivider} />
+              <View style={styles.resultRow}><Text style={styles.resultLabel}>Order ID</Text><Text style={styles.resultSmall}>{orderId}</Text></View>
+              {utr ? <><View style={styles.resultDivider} /><View style={styles.resultRow}><Text style={styles.resultLabel}>UTR</Text><Text style={styles.resultSmall}>{utr}</Text></View></> : null}
+            </View>
+            <View style={styles.resultBtns}>
+              <TouchableOpacity style={styles.btnOutline} onPress={reset}><Text style={styles.btnOutlineText}>Add More</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnFilled} onPress={() => router.replace("/(tabs)")}><Text style={styles.btnFilledText}>Home</Text></TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // FAILED SCREEN
+  if (screenState === "failed") {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.resultBox}>
+          <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+            <View style={[styles.resultIcon, { backgroundColor: "rgba(239,68,68,0.1)" }]}>
+              <Ionicons name="close-circle" size={80} color="#ef4444" />
+            </View>
+          </Animated.View>
+          <Animated.View style={{ opacity: fadeAnim, alignItems: "center", width: "100%" }}>
+            <Text style={[styles.resultTitle, { color: "#ef4444" }]}>Payment Failed</Text>
+            <Text style={styles.resultSub}>{errorMessage || "Could not complete"}</Text>
+            <View style={styles.resultCard}>
+              <View style={styles.resultRow}><Text style={styles.resultLabel}>Amount</Text><Text style={styles.resultValue}>₹{paymentAmount}</Text></View>
+              {orderId ? <><View style={styles.resultDivider} /><View style={styles.resultRow}><Text style={styles.resultLabel}>Order</Text><Text style={styles.resultSmall}>{orderId}</Text></View></> : null}
+            </View>
+            <View style={styles.resultBtns}>
+              <TouchableOpacity style={styles.btnOutline} onPress={() => router.replace("/(tabs)")}><Text style={styles.btnOutlineText}>Home</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.btnFilled, { backgroundColor: "#ef4444" }]} onPress={reset}><Text style={styles.btnFilledText}>Retry</Text></TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // LOADING SCREEN
+  if (screenState === "loading") {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color="#F97316" />
+          <Text style={styles.loadingTitle}>Creating Payment...</Text>
+          <Text style={styles.loadingSub}>Please wait</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Check if both gateways are off
+  const bothGatewaysOff = gatewayStatus && !gatewayStatus.gateway1?.enabled && !gatewayStatus.gateway2?.enabled;
+
+  // MAIN SCREEN
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#1a1a2e" />
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color="#1e293b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add Money</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.headerIcon}>
+            <Ionicons name="wallet" size={24} color="#F97316" />
+          </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* UPI Info Card */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="shield-checkmark" size={32} color="#22c55e" />
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          
+          {/* Gateway Selection */}
+          {loadingGateway ? (
+            <View style={styles.gatewayLoading}>
+              <ActivityIndicator size="small" color="#F97316" />
+              <Text style={styles.gatewayLoadingText}>Loading payment options...</Text>
             </View>
-            <Text style={styles.infoTitle}>Secure UPI Payment</Text>
-            <Text style={styles.infoText}>
-              Pay securely via any UPI app. Money will be added instantly.
-            </Text>
-          </View>
+          ) : bothGatewaysOff ? (
+            <View style={styles.maintenanceBanner}>
+              <Ionicons name="construct" size={40} color="#f59e0b" />
+              <Text style={styles.maintenanceTitle}>Under Maintenance</Text>
+              <Text style={styles.maintenanceText}>Payment gateways are currently unavailable. Please try again later.</Text>
+            </View>
+          ) : (
+            <>
+              {/* Gateway Options */}
+              <Text style={styles.sectionTitle}>Select Payment Gateway</Text>
+              <View style={styles.gatewayRow}>
+                {gatewayStatus?.gateway1?.enabled && (
+                  <TouchableOpacity 
+                    style={[styles.gatewayCard, selectedGateway === 1 && styles.gatewayCardActive]}
+                    onPress={() => setSelectedGateway(1)}
+                  >
+                    <LinearGradient 
+                      colors={selectedGateway === 1 ? ["#F97316", "#EA580C"] : ["#f1f5f9", "#e2e8f0"]} 
+                      style={styles.gatewayGrad}
+                    >
+                      <Ionicons name="flash" size={24} color={selectedGateway === 1 ? "#fff" : "#64748b"} />
+                      <Text style={[styles.gatewayName, selectedGateway === 1 && styles.gatewayNameActive]}>
+                        {gatewayStatus.gateway1.name || "TezIndia"}
+                      </Text>
+                      <Text style={[styles.gatewayMin, selectedGateway === 1 && styles.gatewayMinActive]}>Min ₹100</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+                {gatewayStatus?.gateway2?.enabled && (
+                  <TouchableOpacity 
+                    style={[styles.gatewayCard, selectedGateway === 2 && styles.gatewayCardActive]}
+                    onPress={() => setSelectedGateway(2)}
+                  >
+                    <LinearGradient 
+                      colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#f1f5f9", "#e2e8f0"]} 
+                      style={styles.gatewayGrad}
+                    >
+                      <Ionicons name="qr-code" size={24} color={selectedGateway === 2 ? "#fff" : "#64748b"} />
+                      <Text style={[styles.gatewayName, selectedGateway === 2 && styles.gatewayNameActive]}>
+                        {gatewayStatus.gateway2.name || "ekQR"}
+                      </Text>
+                      <Text style={[styles.gatewayMin, selectedGateway === 2 && styles.gatewayMinActive]}>Min ₹10</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
 
-          {/* Amount Input */}
-          <Text style={styles.label}>Enter Amount</Text>
-          <View style={styles.inputContainer}>
-            <Text style={styles.rupeeSymbol}>₹</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Minimum ₹10"
-              placeholderTextColor="#999"
-              keyboardType="number-pad"
-              value={amount}
-              onChangeText={setAmount}
-            />
-          </View>
+              {/* UPI Apps Info */}
+              <View style={styles.upiAppsRow}>
+                <Text style={styles.upiAppsLabel}>Supported:</Text>
+                <Text style={styles.upiApp}>GPay</Text>
+                <Text style={styles.upiApp}>PhonePe</Text>
+                <Text style={styles.upiApp}>Paytm</Text>
+                <Text style={styles.upiApp}>BHIM</Text>
+              </View>
 
-          {/* Quick Amount Buttons */}
-          <Text style={styles.label}>Quick Select</Text>
-          <View style={styles.quickAmounts}>
-            {quickAmounts.map((amt) => (
-              <TouchableOpacity
-                key={amt}
-                style={[
-                  styles.quickAmountButton,
-                  amount === amt.toString() && styles.quickAmountButtonActive,
-                ]}
-                onPress={() => setAmount(amt.toString())}
+              {/* Amount Input */}
+              <Text style={styles.sectionTitle}>Enter Amount</Text>
+              <View style={styles.inputBox}>
+                <Text style={styles.rupee}>₹</Text>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder={selectedGateway === 2 ? "Min ₹10" : "Min ₹100"}
+                  placeholderTextColor="#94a3b8" 
+                  keyboardType="number-pad" 
+                  value={amount} 
+                  onChangeText={setAmount} 
+                  maxLength={6} 
+                />
+                {amount ? (
+                  <TouchableOpacity onPress={() => setAmount("")} style={styles.clearBtn}>
+                    <Ionicons name="close-circle" size={22} color="#94a3b8" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Quick Amounts */}
+              <Text style={styles.sectionTitle}>Quick Select</Text>
+              <View style={styles.quickGrid}>
+                {quickAmounts.map(a => (
+                  <TouchableOpacity 
+                    key={a} 
+                    style={[styles.quickBtn, amount === a.toString() && styles.quickBtnActive]} 
+                    onPress={() => setAmount(a.toString())}
+                  >
+                    <Text style={[styles.quickText, amount === a.toString() && styles.quickTextActive]}>₹{a}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Pay Button */}
+              <TouchableOpacity 
+                style={[styles.payBtn, (!amount || parseInt(amount) < (selectedGateway === 2 ? 10 : 100)) && styles.payBtnDisabled]} 
+                onPress={handlePay} 
+                disabled={!amount || parseInt(amount) < (selectedGateway === 2 ? 10 : 100)}
+                activeOpacity={0.8}
               >
-                <Text
-                  style={[
-                    styles.quickAmountText,
-                    amount === amt.toString() && styles.quickAmountTextActive,
-                  ]}
+                <LinearGradient 
+                  colors={selectedGateway === 2 ? ["#6366f1", "#8b5cf6"] : ["#F97316", "#EA580C"]} 
+                  style={styles.payBtnGrad}
                 >
-                  ₹{amt}
-                </Text>
+                  <Ionicons name="flash" size={22} color="#fff" />
+                  <Text style={styles.payBtnText}>Pay ₹{amount || "0"} with UPI</Text>
+                </LinearGradient>
               </TouchableOpacity>
+
+              {/* Security Badge */}
+              <View style={styles.securityRow}>
+                <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
+                <Text style={styles.securityText}>100% Secure - 256-bit SSL Encrypted</Text>
+              </View>
+            </>
+          )}
+
+          {/* Recent Transactions */}
+          <View style={styles.historySection}>
+            <View style={styles.historyHeader}>
+              <Text style={styles.historyTitle}>Recent Payments</Text>
+              <TouchableOpacity onPress={fetchTransactionHistory}>
+                <Ionicons name="refresh" size={18} color="#F97316" />
+              </TouchableOpacity>
+            </View>
+            {loadingHistory ? <ActivityIndicator color="#F97316" style={{ marginTop: 20 }} /> : transactions.length === 0 ? (
+              <View style={styles.emptyHistory}>
+                <Ionicons name="receipt-outline" size={40} color="#cbd5e1" />
+                <Text style={styles.emptyText}>No recent payments</Text>
+              </View>
+            ) : transactions.slice(0, 5).map((t, i) => (
+              <View key={t.order_id || i} style={styles.historyItem}>
+                <View style={[styles.historyIcon, { backgroundColor: getStatusColor(t.status) + "15" }]}>
+                  <Ionicons name={t.status === "success" ? "checkmark-circle" : t.status === "failed" ? "close-circle" : "time"} size={22} color={getStatusColor(t.status)} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.historyAmt}>+₹{t.amount}</Text>
+                  <Text style={styles.historyDate}>{t.created_at || "Recently"}</Text>
+                </View>
+                <View style={[styles.historyBadge, { backgroundColor: getStatusColor(t.status) + "15" }]}>
+                  <Text style={[styles.historyBadgeText, { color: getStatusColor(t.status) }]}>{(t.status || "PENDING").toUpperCase()}</Text>
+                </View>
+              </View>
             ))}
-          </View>
-
-          {/* Pay Button */}
-          <TouchableOpacity
-            style={[styles.payButton, loading && styles.buttonDisabled]}
-            onPress={handleAddMoney}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="card" size={20} color="#fff" />
-                <Text style={styles.payButtonText}>Pay via UPI</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          {/* Note */}
-          <View style={styles.noteContainer}>
-            <Ionicons name="information-circle" size={16} color="#666" />
-            <Text style={styles.noteText}>
-              After payment, return to this app to check status
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -164,139 +518,99 @@ export default function AddMoneyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  scrollContent: {
-    padding: 16,
-  },
-  infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  infoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(34, 197, 94, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  infoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a2e',
-    marginBottom: 8,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
-  },
-  rupeeSymbol: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1a1a2e',
-    paddingLeft: 16,
-  },
-  input: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1a1a2e',
-    paddingHorizontal: 8,
-    paddingVertical: 16,
-  },
-  quickAmounts: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  quickAmountButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
-  },
-  quickAmountButtonActive: {
-    borderColor: '#2E8B2B',
-    backgroundColor: 'rgba(240, 138, 93, 0.08)',
-  },
-  quickAmountText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-  },
-  quickAmountTextActive: {
-    color: '#2E8B2B',
-  },
-  payButton: {
-    backgroundColor: '#2E8B2B',
-    borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  payButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  noteContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 16,
-  },
-  noteText: {
-    fontSize: 12,
-    color: '#666',
-  },
+  container: { flex: 1, backgroundColor: "#FFF7ED" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#FFF7ED", borderBottomWidth: 1, borderBottomColor: "#FDBA74" },
+  backBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", elevation: 2 },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: "#1e293b" },
+  headerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(249,115,22,0.1)", alignItems: "center", justifyContent: "center" },
+  scroll: { padding: 16, paddingBottom: 40 },
+  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#64748b", marginBottom: 12, marginTop: 4 },
+  
+  // Gateway Selection
+  gatewayLoading: { flexDirection: "row", alignItems: "center", justifyContent: "center", padding: 20, gap: 10 },
+  gatewayLoadingText: { fontSize: 14, color: "#64748b" },
+  gatewayRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
+  gatewayCard: { flex: 1, borderRadius: 16, overflow: "hidden", borderWidth: 2, borderColor: "transparent" },
+  gatewayCardActive: { borderColor: "#F97316" },
+  gatewayGrad: { padding: 16, alignItems: "center", gap: 8 },
+  gatewayName: { fontSize: 14, fontWeight: "700", color: "#64748b" },
+  gatewayNameActive: { color: "#fff" },
+  gatewayMin: { fontSize: 11, color: "#94a3b8" },
+  gatewayMinActive: { color: "rgba(255,255,255,0.8)" },
+  
+  // Maintenance Banner
+  maintenanceBanner: { backgroundColor: "#fef3c7", borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 20 },
+  maintenanceTitle: { fontSize: 18, fontWeight: "800", color: "#b45309", marginTop: 12 },
+  maintenanceText: { fontSize: 14, color: "#92400e", textAlign: "center", marginTop: 8 },
+  
+  // UPI Apps
+  upiAppsRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 20, flexWrap: "wrap" },
+  upiAppsLabel: { fontSize: 12, color: "#64748b", fontWeight: "500" },
+  upiApp: { fontSize: 11, fontWeight: "600", color: "#F97316", backgroundColor: "rgba(249,115,22,0.1)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  
+  inputBox: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 16, borderWidth: 2, borderColor: "#FDBA74", paddingHorizontal: 16, marginBottom: 20 },
+  rupee: { fontSize: 26, fontWeight: "800", color: "#F97316", marginRight: 8 },
+  input: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1e293b", paddingVertical: 16 },
+  clearBtn: { padding: 4 },
+  quickGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 24 },
+  quickBtn: { paddingVertical: 14, paddingHorizontal: 18, backgroundColor: "#fff", borderRadius: 12, borderWidth: 2, borderColor: "#FDBA74" },
+  quickBtnActive: { borderColor: "#F97316", backgroundColor: "rgba(249,115,22,0.1)" },
+  quickText: { fontSize: 15, fontWeight: "700", color: "#64748b" },
+  quickTextActive: { color: "#F97316" },
+  payBtn: { borderRadius: 16, overflow: "hidden", marginBottom: 16 },
+  payBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, gap: 10 },
+  payBtnDisabled: { opacity: 0.5 },
+  payBtnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  securityRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 24 },
+  securityText: { fontSize: 12, color: "#64748b", fontWeight: "500" },
+  historySection: { backgroundColor: "#fff", borderRadius: 20, padding: 18 },
+  historyHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  historyTitle: { fontSize: 16, fontWeight: "800", color: "#1e293b" },
+  emptyHistory: { alignItems: "center", paddingVertical: 30 },
+  emptyText: { fontSize: 13, color: "#94a3b8", marginTop: 10 },
+  historyItem: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFF7ED", borderRadius: 14, padding: 14, marginBottom: 8 },
+  historyIcon: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 12 },
+  historyAmt: { fontSize: 16, fontWeight: "800", color: "#22c55e" },
+  historyDate: { fontSize: 11, color: "#94a3b8", marginTop: 2 },
+  historyBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  historyBadgeText: { fontSize: 10, fontWeight: "700" },
+  
+  // WebView styles
+  wvHeader: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#FDBA74" },
+  wvCloseBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
+  wvHeaderCenter: { flex: 1, marginLeft: 12 },
+  wvTitle: { fontSize: 17, fontWeight: "800", color: "#1e293b" },
+  wvSecureBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  wvSecureText: { fontSize: 10, color: "#22c55e", fontWeight: "500" },
+  wvAmountBox: { backgroundColor: "#FFF7ED", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10 },
+  wvAmount: { fontSize: 18, fontWeight: "800", color: "#F97316" },
+  wvLoading: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  wvLoadingText: { fontSize: 14, color: "#64748b", marginTop: 12 },
+  wvFooter: { backgroundColor: "#fff", padding: 16, borderTopWidth: 1, borderTopColor: "#FDBA74" },
+  wvStatusRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12 },
+  wvStatusText: { fontSize: 13, color: "#22c55e", fontWeight: "600" },
+  wvBtnRow: { flexDirection: "row", gap: 12 },
+  wvBrowserBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, backgroundColor: "#eff6ff", borderRadius: 14 },
+  wvBrowserText: { fontSize: 14, fontWeight: "700", color: "#3b82f6" },
+  wvCancelBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, backgroundColor: "#fef2f2", borderRadius: 14 },
+  wvCancelText: { fontSize: 14, fontWeight: "700", color: "#ef4444" },
+  
+  loadingBox: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadingTitle: { fontSize: 18, fontWeight: "700", color: "#1e293b", marginTop: 16 },
+  loadingSub: { fontSize: 14, color: "#64748b", marginTop: 4 },
+  resultBox: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#FFF7ED" },
+  resultIcon: { width: 130, height: 130, borderRadius: 65, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  resultTitle: { fontSize: 26, fontWeight: "900", marginBottom: 8 },
+  resultSub: { fontSize: 14, color: "#64748b", marginBottom: 24 },
+  resultCard: { width: "100%", backgroundColor: "#fff", borderRadius: 20, padding: 20, marginBottom: 24 },
+  resultRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12 },
+  resultLabel: { fontSize: 14, color: "#64748b", fontWeight: "500" },
+  resultValue: { fontSize: 24, fontWeight: "900", color: "#1e293b" },
+  resultSmall: { fontSize: 12, color: "#475569", fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" },
+  resultDivider: { height: 1, backgroundColor: "#f1f5f9" },
+  resultBtns: { flexDirection: "row", gap: 14, width: "100%" },
+  btnOutline: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#fff", borderRadius: 14, borderWidth: 2, borderColor: "#F97316" },
+  btnOutlineText: { fontSize: 15, fontWeight: "800", color: "#F97316" },
+  btnFilled: { flex: 1, alignItems: "center", paddingVertical: 16, backgroundColor: "#F97316", borderRadius: 14 },
+  btnFilledText: { fontSize: 15, fontWeight: "800", color: "#fff" },
 });

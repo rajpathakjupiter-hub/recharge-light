@@ -8,14 +8,41 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+
+// Real operator logos
+const OPERATOR_LOGOS: { [key: string]: string } = {
+  jio: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/kws72f9c_download.png',
+  airtel: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/bbb721ek_download.png',
+  vi: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/2r80weeg_download.png',
+  bsnl: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/8jpd8jcv_download.jpg',
+  tatasky: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/m8ujpsnd_download.png',
+  'tata sky': 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/m8ujpsnd_download.png',
+  'tata play': 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/m8ujpsnd_download.png',
+  airteldth: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/iecpj5mu_download.png',
+  'airtel dth': 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/iecpj5mu_download.png',
+  dishtv: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/qsifnpri_download.png',
+  'dish tv': 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/qsifnpri_download.png',
+  d2h: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/zclzjt2v_images.jpg',
+  sundirect: 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/y2gvhx9n_download.jpg',
+  'sun direct': 'https://customer-assets.emergentagent.com/job_recharge-app-28/artifacts/y2gvhx9n_download.jpg',
+};
+
+const getOperatorLogo = (operator: string): string | null => {
+  if (!operator) return null;
+  const key = operator.toLowerCase().replace(/\s+/g, '');
+  return OPERATOR_LOGOS[key] || OPERATOR_LOGOS[operator.toLowerCase()] || null;
+};
 
 interface Transaction {
   type: string;
@@ -33,6 +60,9 @@ interface Transaction {
 }
 
 export default function HistoryScreen() {
+  const { width } = useWindowDimensions();
+  const isSmallDevice = width < 360;
+
   const getApiKey = async () => {
     const apiKey = await AsyncStorage.getItem('api_key');
     return apiKey || '';
@@ -41,20 +71,36 @@ export default function HistoryScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'recharge' | 'dth'>('all');
+  const [filter, setFilter] = useState<'mobile' | 'dth'>('mobile');
 
   const fetchHistory = async () => {
     try {
       const apiKey = await getApiKey();
-      const response = await axios.get(`${BACKEND_URL}/api/external/recharge/history?api_key=${apiKey}&limit=50`);
+      // Use the unified transactions API with type filter
+      const typeParam = filter === 'mobile' ? 'mobile' : 'dth';
+      const response = await axios.get(`${BACKEND_URL}/api/external/transactions?api_key=${apiKey}&limit=50&type=${typeParam}`);
       
       if (response.data.transactions) {
         setTransactions(response.data.transactions);
       } else if (response.data.recharges) {
         setTransactions(response.data.recharges);
+      } else {
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Fetch history error:', error);
+      // Fallback to recharge history API
+      try {
+        const apiKey = await getApiKey();
+        const response = await axios.get(`${BACKEND_URL}/api/external/recharge/history?api_key=${apiKey}&limit=50`);
+        if (response.data.transactions) {
+          setTransactions(response.data.transactions);
+        } else if (response.data.recharges) {
+          setTransactions(response.data.recharges);
+        }
+      } catch (e) {
+        console.error('Fallback history error:', e);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,6 +108,7 @@ export default function HistoryScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setLoading(true);
       fetchHistory();
     }, [filter])
   );
@@ -73,7 +120,7 @@ export default function HistoryScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'success':
         return '#22c55e';
       case 'failed':
@@ -86,73 +133,94 @@ export default function HistoryScreen() {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type?.toUpperCase()) {
-      case 'MOBILE_RECHARGE':
-        return 'phone-portrait';
-      case 'DTH_RECHARGE':
-        return 'tv';
-      case 'UPI_LOAD':
-        return 'card';
-      case 'GIFTCARD':
-        return 'gift';
-      default:
-        return 'swap-horizontal';
-    }
-  };
+  const filteredTransactions = transactions.filter((txn) => {
+    const txnType = txn.type?.toUpperCase() || '';
+    if (filter === 'mobile') return txnType.includes('MOBILE') || txnType.includes('PREPAID') || (!txnType.includes('DTH'));
+    if (filter === 'dth') return txnType.includes('DTH');
+    return true;
+  });
 
-  const renderTransaction = ({ item }: { item: Transaction }) => (
-    <View style={styles.transactionCard}>
-      <View style={styles.transactionIcon}>
-        <Ionicons
-          name={getTypeIcon(item.type) as any}
-          size={24}
-          color="#2E8B2B"
-        />
-      </View>
-      <View style={styles.transactionDetails}>
-        <Text style={styles.transactionType}>
-          {item.type?.replace('_', ' ') || 'Recharge'}
-        </Text>
-        <Text style={styles.transactionNumber}>
-          {item.number || item.mobile_number} - {item.operator || item.operator_name}
-        </Text>
-        <Text style={styles.transactionDate}>
-          {item.date || item.created_at}
-        </Text>
-      </View>
-      <View style={styles.transactionRight}>
-        <Text style={styles.transactionAmount}>₹{item.amount}</Text>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: `${getStatusColor(item.status)}15` },
-          ]}
-        >
-          <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}
-          >
-            {item.status}
+  const renderTransaction = ({ item }: { item: Transaction }) => {
+    const operatorName = item.operator || item.operator_name || '';
+    const logo = getOperatorLogo(operatorName);
+    const isDTH = item.type?.toUpperCase().includes('DTH');
+    const isSuccess = item.status?.toLowerCase() === 'success';
+    const hasCommission = isSuccess && item.commission > 0;
+    
+    return (
+      <View style={styles.transactionCard}>
+        <View style={styles.transactionIcon}>
+          {logo ? (
+            <Image source={{ uri: logo }} style={styles.opLogo} resizeMode="contain" />
+          ) : (
+            <LinearGradient 
+              colors={isDTH ? ['#6366f1', '#8b5cf6'] : ['#F97316', '#EA580C']} 
+              style={styles.iconGradient}
+            >
+              <Ionicons
+                name={isDTH ? 'tv' : 'phone-portrait'}
+                size={18}
+                color="#fff"
+              />
+            </LinearGradient>
+          )}
+        </View>
+        <View style={styles.transactionDetails}>
+          <Text style={styles.transactionType}>
+            {operatorName || (isDTH ? 'DTH Recharge' : 'Mobile Recharge')}
+          </Text>
+          <Text style={styles.transactionNumber}>
+            {item.number || item.mobile_number}
+          </Text>
+          <Text style={styles.transactionDate}>
+            {item.date || item.created_at}
           </Text>
         </View>
-        {item.status === 'success' && item.commission > 0 && (
-          <Text style={styles.commission}>+₹{item.commission.toFixed(2)}</Text>
-        )}
+        <View style={styles.transactionRight}>
+          <Text style={styles.transactionAmount}>₹{item.amount}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: `${getStatusColor(item.status)}15` },
+            ]}
+          >
+            <Text
+              style={[styles.statusText, { color: getStatusColor(item.status) }]}
+            >
+              {item.status}
+            </Text>
+          </View>
+          {hasCommission && (
+            <View style={styles.commissionBadge}>
+              <Ionicons name="cash-outline" size={10} color="#22c55e" />
+              <Text style={styles.commissionText}>+₹{item.commission.toFixed(2)}</Text>
+            </View>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const FilterButton = ({
     label,
     value,
+    icon,
   }: {
     label: string;
-    value: 'all' | 'recharge' | 'dth';
+    value: 'mobile' | 'dth';
+    icon: string;
   }) => (
     <TouchableOpacity
       style={[styles.filterButton, filter === value && styles.filterButtonActive]}
       onPress={() => setFilter(value)}
+      activeOpacity={0.7}
     >
+      <Ionicons 
+        name={icon as any} 
+        size={16} 
+        color={filter === value ? '#fff' : '#64748b'} 
+        style={{ marginRight: 6 }}
+      />
       <Text
         style={[
           styles.filterButtonText,
@@ -167,35 +235,41 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Transaction History</Text>
+        <Text style={[styles.title, { fontSize: isSmallDevice ? 20 : 24 }]}>Transaction History</Text>
+        <View style={styles.headerIcon}>
+          <Ionicons name="receipt" size={isSmallDevice ? 16 : 20} color="#F97316" />
+        </View>
       </View>
 
       <View style={styles.filterContainer}>
-        <FilterButton label="All" value="all" />
-        <FilterButton label="Mobile" value="recharge" />
-        <FilterButton label="DTH" value="dth" />
+        <FilterButton label="Mobile" value="mobile" icon="phone-portrait" />
+        <FilterButton label="DTH" value="dth" icon="tv" />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E8B2B" />
+          <ActivityIndicator size="large" color="#F97316" />
         </View>
-      ) : transactions.length === 0 ? (
+      ) : filteredTransactions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="receipt-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>No transactions yet</Text>
+          <LinearGradient colors={['#F97316', '#EA580C']} style={styles.emptyIconBg}>
+            <Ionicons name="receipt-outline" size={40} color="#fff" />
+          </LinearGradient>
+          <Text style={styles.emptyText}>No {filter === 'mobile' ? 'Mobile' : 'DTH'} transactions yet</Text>
+          <Text style={styles.emptySubtext}>Your transactions will appear here</Text>
         </View>
       ) : (
         <FlatList
-          data={transactions}
+          data={filteredTransactions}
           renderItem={renderTransaction}
-          keyExtractor={(item) => item.transaction_id}
+          keyExtractor={(item, index) => item.transaction_id || `txn-${index}`}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#2E8B2B"
+              tintColor="#F97316"
+              colors={['#F97316']}
             />
           }
         />
@@ -207,42 +281,61 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: '#FFF7ED',
   },
   header: {
-    padding: 16,
-    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: '#1e293b',
+  },
+  headerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8 },
+      android: { elevation: 4 },
+    }),
   },
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    gap: 12,
+    gap: 10,
   },
   filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e8e8e8',
+    borderWidth: 2,
+    borderColor: '#FDBA74',
   },
   filterButtonActive: {
-    backgroundColor: '#2E8B2B',
-    borderColor: '#2E8B2B',
+    backgroundColor: '#F97316',
+    borderColor: '#F97316',
   },
   filterButtonText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
   },
   filterButtonTextActive: {
     color: '#fff',
-    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -253,11 +346,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 16,
+    gap: 12,
+  },
+  emptyIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#94a3b8',
   },
   listContent: {
     padding: 16,
@@ -268,20 +374,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+    ...Platform.select({
+      ios: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 3 },
+    }),
   },
   transactionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(240, 138, 93, 0.12)',
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  opLogo: {
+    width: 40,
+    height: 40,
+  },
+  iconGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -290,18 +408,18 @@ const styles = StyleSheet.create({
   },
   transactionType: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#1a1a2e',
+    fontWeight: '700',
+    color: '#1e293b',
     textTransform: 'capitalize',
   },
   transactionNumber: {
     fontSize: 12,
-    color: '#666',
+    color: '#64748b',
     marginTop: 2,
   },
   transactionDate: {
     fontSize: 11,
-    color: '#999',
+    color: '#94a3b8',
     marginTop: 4,
   },
   transactionRight: {
@@ -309,23 +427,33 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a2e',
+    fontWeight: '800',
+    color: '#1e293b',
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     marginTop: 4,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
-  commission: {
-    fontSize: 11,
-    color: '#22c55e',
+  commissionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     marginTop: 4,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  commissionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#22c55e',
   },
 });

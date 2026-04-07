@@ -1,63 +1,39 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
-  RefreshControl,
-  Animated,
+  View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Platform, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
-interface MarginItem {
-  operator_code: string;
-  operator_name: string;
-  type: string;
-  margin_percent: number;
-}
-
 export default function MarginScreen() {
-  const getApiKey = async () => {
-    const apiKey = await AsyncStorage.getItem('api_key');
-    return apiKey || '';
-  };
-
-  const [margins, setMargins] = useState<MarginItem[]>([]);
+  const [margins, setMargins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'prepaid' | 'dth'>('all');
-
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const fetchMargins = async () => {
     try {
-      const apiKey = await getApiKey();
-      const url = BACKEND_URL + '/api/external/margin?api_key=' + apiKey;
-      const response = await axios.get(url);
-      if (response.data?.margins) {
-        setMargins(response.data.margins);
+      const apiKey = await AsyncStorage.getItem('api_key');
+      if (!apiKey) { setLoading(false); return; }
+      const res = await axios.get(`${BACKEND_URL}/api/external/margin?api_key=${apiKey}`);
+      if (res.data?.status === 'success' && res.data?.margins) {
+        setMargins(res.data.margins);
       }
     } catch (error) {
       console.error('Fetch margins error:', error);
     } finally {
       setLoading(false);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchMargins();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { setLoading(true); fetchMargins(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -65,48 +41,29 @@ export default function MarginScreen() {
     setRefreshing(false);
   };
 
-  const filteredMargins = margins.filter((m) => {
-    if (activeFilter === 'all') return true;
-    return m.type === activeFilter;
-  });
+  const prepaidMargins = margins.filter((m: any) => m.type === 'prepaid');
+  const dthMargins = margins.filter((m: any) => m.type === 'dth');
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'prepaid': return 'phone-portrait';
-      case 'dth': return 'tv';
-      default: return 'card';
-    }
-  };
-
-  const getIconColor = (type: string) => {
-    switch (type) {
-      case 'prepaid': return '#2E8B2B';
-      case 'dth': return '#6366f1';
-      default: return '#22c55e';
-    }
-  };
-
-  const renderItem = ({ item, index }: { item: MarginItem; index: number }) => (
-    <View style={[styles.card, { marginTop: index === 0 ? 0 : 10 }]}> 
-      <View style={[styles.cardIcon, { backgroundColor: `${getIconColor(item.type)}15` }]}>
-        <Ionicons name={getIcon(item.type) as any} size={22} color={getIconColor(item.type)} />
-      </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{item.operator_name}</Text>
-        <Text style={styles.cardType}>{item.type === 'prepaid' ? 'Mobile Prepaid' : 'DTH Recharge'}</Text>
-      </View>
-      <View style={styles.cardMargin}>
-        <Text style={styles.marginPercent}>{item.margin_percent}%</Text>
-        <Text style={styles.marginExample}>₹{(item.margin_percent).toFixed(2)}/₹100</Text>
-      </View>
+  const MarginCard = ({ title, icon, color, data }: any) => (
+    <View style={styles.card}>
+      <LinearGradient colors={[color, color + '99']} style={styles.cardIcon}>
+        <Ionicons name={icon} size={24} color="#fff" />
+      </LinearGradient>
+      <Text style={styles.cardTitle}>{title}</Text>
+      {data && data.length > 0 ? data.map((item: any, index: number) => (
+        <View key={index} style={styles.marginRow}>
+          <Text style={styles.marginKey}>{item.operator_name}</Text>
+          <Text style={[styles.marginValue, { color }]}>{item.margin_percent}%</Text>
+        </View>
+      )) : <Text style={styles.noData}>No margin data</Text>}
     </View>
   );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2E8B2B" />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color="#F97316" />
           <Text style={styles.loadingText}>Loading margins...</Text>
         </View>
       </SafeAreaView>
@@ -115,175 +72,44 @@ export default function MarginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#2E8B2B', '#e67e4a']}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>My Margin</Text>
-        <Text style={styles.headerSubtitle}>Commission rates per operator</Text>
-      </LinearGradient>
-
-      {/* Filter Tabs */}
-      <View style={styles.filterRow}>
-        {(['all', 'prepaid', 'dth'] as const).map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterTab,
-              activeFilter === filter && styles.filterTabActive,
-            ]}
-            onPress={() => setActiveFilter(filter)}
-          >
-            <Text
-              style={[
-                styles.filterTabText,
-                activeFilter === filter && styles.filterTabTextActive,
-              ]}
-            >
-              {filter === 'all' ? 'All' : filter === 'prepaid' ? 'Mobile' : 'DTH'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Margin Rates</Text>
+        <Ionicons name="trending-up" size={24} color="#F97316" />
       </View>
 
-      {/* List */}
-      <FlatList
-        data={filteredMargins}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.operator_code}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2E8B2B" />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cash-outline" size={56} color="#ccc" />
-            <Text style={styles.emptyText}>No margin data available</Text>
-          </View>
-        }
-      />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
+      >
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <MarginCard title="Mobile Prepaid" icon="phone-portrait" color="#F97316" data={prepaidMargins} />
+          <MarginCard title="DTH" icon="tv" color="#EA580C" data={dthMargins} />
+        </Animated.View>
+
+        <View style={styles.infoBox}>
+          <Ionicons name="information-circle" size={20} color="#F97316" />
+          <Text style={styles.infoText}>Margins are your profit on each recharge. Higher margin = more earnings!</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f7fa',
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: '#888',
-  },
-  header: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  filterTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  filterTabActive: {
-    backgroundColor: '#2E8B2B',
-    borderColor: '#2E8B2B',
-  },
-  filterTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-  },
-  filterTabTextActive: {
-    color: '#fff',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 110 : 100,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  cardIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardContent: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  cardType: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
-  },
-  cardMargin: {
-    alignItems: 'flex-end',
-  },
-  marginPercent: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#22c55e',
-  },
-  marginExample: {
-    fontSize: 10,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#999',
-  },
+  container: { flex: 1, backgroundColor: '#FFF7ED' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#FDBA74' },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#1e293b' },
+  scrollContent: { padding: 16, paddingBottom: 100 },
+  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#94a3b8' },
+  card: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, elevation: 3, shadowColor: '#F97316', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 },
+  cardIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#1e293b', marginBottom: 12 },
+  marginRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },
+  marginKey: { fontSize: 14, color: '#64748b', fontWeight: '500' },
+  marginValue: { fontSize: 16, fontWeight: '800' },
+  noData: { fontSize: 14, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 },
+  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(249,115,22,0.1)', padding: 16, borderRadius: 14, marginTop: 8 },
+  infoText: { flex: 1, fontSize: 13, color: '#64748b', lineHeight: 18 },
 });

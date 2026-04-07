@@ -1,135 +1,155 @@
-import { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Animated, Text, Image } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Image, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function SplashScreen() {
-  const [isLoading, setIsLoading] = useState(true);
-  const logoScale = useRef(new Animated.Value(0.5)).current;
+const { width, height } = Dimensions.get('window');
+
+export default function Index() {
+  const logoScale = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
-  const loaderOpacity = useRef(new Animated.Value(0)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animate splash
+    // Animate logo
     Animated.sequence([
       Animated.parallel([
-        Animated.spring(logoScale, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 50,
-          friction: 7,
-        }),
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
+        Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
       ]),
-      Animated.timing(textOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.timing(loaderOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+      Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(taglineOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
     ]).start();
 
-    checkAuth();
+    // Check auth after animation
+    setTimeout(checkAuth, 2000);
   }, []);
 
   const checkAuth = async () => {
     try {
       const token = await AsyncStorage.getItem('auth_token');
-      setTimeout(() => {
-        setIsLoading(false);
-        if (token) {
-          router.replace('/(tabs)');
-        } else {
-          router.replace('/login');
-        }
-      }, 2500);
+      if (token) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/login');
+      }
     } catch (error) {
-      setIsLoading(false);
       router.replace('/login');
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: logoOpacity,
-            transform: [{ scale: logoScale }],
-          },
-        ]}
-      >
-        <Image
-          source={require('../assets/images/rechargelight-logo.png')}
-          style={styles.logoImage}
+    <LinearGradient colors={['#F97316', '#EA580C', '#C2410C']} style={styles.container}>
+      {/* Decorative circles */}
+      <View style={styles.circle1} />
+      <View style={styles.circle2} />
+      <View style={styles.circle3} />
+
+      {/* Logo */}
+      <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
+        <Image 
+          source={require('../assets/images/rechargelight-logo.png')} 
+          style={styles.logo}
           resizeMode="contain"
         />
       </Animated.View>
 
-      <Animated.View style={[styles.textContainer, { opacity: textOpacity }]}>
-        <Text style={styles.appName}>
-          <Text style={styles.rechargeText}>Recharge</Text>
-          <Text style={styles.lightText}>light</Text>
-        </Text>
-        <Text style={styles.tagline}>Mobile Recharge & Bill Payments</Text>
-      </Animated.View>
+      {/* App Name */}
+      <Animated.Text style={[styles.appName, { opacity: textOpacity }]}>
+        Recharge Light
+      </Animated.Text>
 
-      <Animated.View style={[styles.loaderContainer, { opacity: loaderOpacity }]}>
-        {isLoading && (
-          <ActivityIndicator size="large" color="#2E8B2B" />
-        )}
-      </Animated.View>
-    </View>
+      {/* Tagline */}
+      <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
+        Fast • Secure • Reliable
+      </Animated.Text>
+
+      {/* Bottom loader */}
+      <View style={styles.loaderContainer}>
+        <View style={styles.loaderDot} />
+        <View style={[styles.loaderDot, { marginHorizontal: 8 }]} />
+        <View style={styles.loaderDot} />
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
+  container: { 
+    flex: 1, 
+    alignItems: 'center', 
     justifyContent: 'center',
   },
+  circle1: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  circle2: {
+    position: 'absolute',
+    bottom: -80,
+    left: -80,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  circle3: {
+    position: 'absolute',
+    top: height * 0.3,
+    left: -50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   logoContainer: {
-    width: 180,
-    height: 180,
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 180,
-    height: 180,
-  },
-  textContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 35,
+    backgroundColor: '#fff',
     alignItems: 'center',
-    marginBottom: 40,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+    marginBottom: 24,
+  },
+  logo: {
+    width: 100,
+    height: 100,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  rechargeText: {
-    color: '#2E8B2B',
-  },
-  lightText: {
-    color: '#F7941D',
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   tagline: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    letterSpacing: 2,
   },
   loaderContainer: {
-    height: 50,
+    position: 'absolute',
+    bottom: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loaderDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });
