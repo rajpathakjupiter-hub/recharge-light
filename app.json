@@ -10,10 +10,10 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.rechargelight.app"
+      "bundleIdentifier": "com.rechargelight.in.app"
     },
     "android": {
-      "package": "com.rechargelight.app",
+      "package": "com.rechargelight.in.app",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/rechargelight-logo.png",
