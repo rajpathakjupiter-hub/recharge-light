@@ -87,18 +87,17 @@ workflows:
         script: |
           npx expo prebuild --platform android --clean
       
-      - name: Generate release keystore
+      - name: Decode persistent release keystore
         script: |
-          keytool -genkeypair -v \
-            -storetype PKCS12 \
-            -keystore android/app/rechargelight-release.keystore \
-            -alias $KEY_ALIAS \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass $STORE_PASSWORD \
-            -keypass $KEY_PASSWORD \
-            -dname "CN=Recharge Light, OU=Mobile, O=Recharge Light, L=India, ST=India, C=IN"
+          # IMPORTANT: Use persistent keystore stored as encrypted env var KEYSTORE_BASE64.
+          # This keystore must NEVER change once an app is published on Play Store.
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "ERROR: KEYSTORE_BASE64 env var is missing. Add it in Codemagic env vars (Group: keystore_credentials)."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/rechargelight-release.keystore
+          echo "Keystore restored. Verifying fingerprint:"
+          keytool -list -v -keystore android/app/rechargelight-release.keystore -storepass "$STORE_PASSWORD" | grep -E "SHA1|SHA256" | head -2
       
       - name: Configure release signing
         script: |
