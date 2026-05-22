@@ -2,7 +2,7 @@
   "expo": {
     "name": "Recharge Light",
     "slug": "rechargelight-app",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/rechargelight-logo.png",
     "scheme": "rechargelight",
@@ -10,11 +10,11 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.rechargelight.in.app2"
+      "bundleIdentifier": "com.rechargelight.in.app"
     },
     "android": {
-      "package": "com.rechargelight.in.app2",
-      "versionCode": 1,
+      "package": "com.rechargelight.in.app",
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/rechargelight-logo.png",
         "backgroundColor": "#10b981"

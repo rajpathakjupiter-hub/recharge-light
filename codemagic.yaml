@@ -59,7 +59,7 @@ workflows:
         - keystore_credentials
       vars:
         EXPO_PUBLIC_BACKEND_URL: "https://rechargelight.in"
-        PACKAGE_NAME: "com.rechargelight.in.app2"
+        PACKAGE_NAME: "com.rechargelight.in.app"
       node: 20
       java: 17
     
