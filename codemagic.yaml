@@ -55,12 +55,11 @@ workflows:
     instance_type: mac_mini_m2
     
     environment:
+      groups:
+        - keystore_credentials
       vars:
         EXPO_PUBLIC_BACKEND_URL: "https://rechargelight.in"
         PACKAGE_NAME: "com.rechargelight.app"
-        KEY_ALIAS: "rechargelight"
-        KEY_PASSWORD: "RechargeLight@2024"
-        STORE_PASSWORD: "RechargeLight@2024"
       node: 20
       java: 17
     
